@@ -3,6 +3,9 @@
 # MVN
 target/
 
+# Logs
+logs/*
+
 # IDE Stuff
 ## Eclipse
 .classpath

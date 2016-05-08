@@ -7,13 +7,15 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.util.CharsetUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class TixMessageEncoder extends MessageToByteEncoder<TixPackage> {
-	private final Logger logger = LoggerFactory.getLogger(this.getClass());
+	private final Logger logger = LogManager.getLogger(this.getClass());
+
 	@Override
 	protected void encode(ChannelHandlerContext ctx, TixPackage msg, ByteBuf out) throws Exception {
+		logger.entry(ctx, msg, out);
 		if (msg instanceof TixTimestampPackage) {
 			TixTimestampPackage.TIMESTAMP_WRITER.apply(out, ((TixTimestampPackage)msg).getInitalTimestamp());
 			TixTimestampPackage.TIMESTAMP_WRITER.apply(out, ((TixTimestampPackage)msg).getReceptionTimestamp());
@@ -33,5 +35,6 @@ public class TixMessageEncoder extends MessageToByteEncoder<TixPackage> {
 					TixDataPackage.DATA_DELIMITER;
 			out.writeBytes(data.getBytes(CharsetUtil.UTF_8));
 		}
+		logger.exit(out);
 	}
 }

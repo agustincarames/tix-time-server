@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.*;
 import io.netty.buffer.ByteBuf;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -78,5 +80,15 @@ public class TixTimestampPackage implements TixPackage {
 				.append(this.getSentTimestamp())
 				.append(this.getFinalTimestamp())
 				.hashCode();
+	}
+
+	@Override
+	public String toString() {
+		return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
+				.append(this.getInitalTimestamp())
+				.append(this.getReceptionTimestamp())
+				.append(this.getSentTimestamp())
+				.append(this.getFinalTimestamp())
+				.toString();
 	}
 }

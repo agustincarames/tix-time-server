@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.*;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.Base64;
 import java.util.function.Function;
@@ -76,5 +78,16 @@ public class TixDataPackage extends TixTimestampPackage {
 				.append(this.getFilename())
 				.append(this.getMessage())
 				.hashCode();
+	}
+
+	@Override
+	public String toString() {
+		return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
+				.appendSuper(super.toString())
+				.append("publicKey", this.getPublicKey())
+				.append("signature", this.getSignature())
+				.append("filename", this.getFilename())
+				.append("message", this.getMessage())
+				.toString();
 	}
 }
