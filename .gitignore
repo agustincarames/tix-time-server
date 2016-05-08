@@ -7,7 +7,7 @@ target/
 ## Eclipse
 .classpath
 .settings
-.project/
+.project
 
 ## IntelliJ Idea
 .idea/
