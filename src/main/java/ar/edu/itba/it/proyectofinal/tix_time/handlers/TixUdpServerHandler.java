@@ -8,7 +8,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class TixUdpClientMessageHandler extends ChannelInboundHandlerAdapter {
+public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 
@@ -23,7 +23,8 @@ public class TixUdpClientMessageHandler extends ChannelInboundHandlerAdapter {
 		}
 		if (msg instanceof TixDataPackage) {
 			System.out.println("It's data!");
-		} else if (msg instanceof TixTimestampPackage) {
+		}
+		if (msg instanceof TixTimestampPackage) {
 			System.out.println("It's a timestamp!");
 		}
 		logger.exit();

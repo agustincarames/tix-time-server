@@ -2,7 +2,7 @@ package ar.edu.itba.it.proyectofinal.tix_time;
 
 import ar.edu.itba.it.proyectofinal.tix_time.decoder.TixMessageDecoder;
 import ar.edu.itba.it.proyectofinal.tix_time.encoder.TixMessageEncoder;
-import ar.edu.itba.it.proyectofinal.tix_time.handlers.TixUdpClientMessageHandler;
+import ar.edu.itba.it.proyectofinal.tix_time.handlers.TixUdpServerHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -55,7 +55,7 @@ public class TixTimeServer {
 				protected void initChannel(DatagramChannel ch)
 						throws Exception {
 					ch.pipeline().addLast(new TixMessageDecoder());
-					ch.pipeline().addLast(new TixUdpClientMessageHandler());
+					ch.pipeline().addLast(new TixUdpServerHandler());
 					ch.pipeline().addLast(new TixMessageEncoder());
 				}
 			});
