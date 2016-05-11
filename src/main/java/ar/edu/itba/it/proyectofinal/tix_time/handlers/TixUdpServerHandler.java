@@ -3,6 +3,9 @@ package ar.edu.itba.it.proyectofinal.tix_time.handlers;
 import ar.edu.itba.it.proyectofinal.tix_time.data.TixDataPackage;
 import ar.edu.itba.it.proyectofinal.tix_time.data.TixPackage;
 import ar.edu.itba.it.proyectofinal.tix_time.data.TixTimestampPackage;
+import ar.edu.itba.it.proyectofinal.tix_time.util.TixTimeUitl;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
@@ -22,11 +25,15 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 			throw new IllegalArgumentException("Expected a TixPackage");
 		}
 		if (msg instanceof TixDataPackage) {
-			System.out.println("It's data!");
+			logger.info("It's data!");
 		}
 		if (msg instanceof TixTimestampPackage) {
-			System.out.println("It's a timestamp!");
+			((TixTimestampPackage)msg).setReceptionTimestamp(TixTimeUitl.NANOS_OF_DAY.get());
+			logger.info("It's a timestamp!");
+			((TixTimestampPackage)msg).setSentTimestamp(TixTimeUitl.NANOS_OF_DAY.get());
 		}
+		ChannelFuture f = ctx.writeAndFlush(msg);
+		f.addListener(ChannelFutureListener.CLOSE);
 		logger.exit();
 	}
 	

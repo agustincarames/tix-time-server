@@ -7,6 +7,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.net.InetSocketAddress;
 import java.util.Base64;
 import java.util.function.Function;
 
@@ -22,9 +23,9 @@ public class TixDataPackage extends TixTimestampPackage {
 	private final String filename;
 	private final String message;
 
-	public TixDataPackage(long initialTimestamp, long finalTimestamp, String publicKey, String signature,
+	public TixDataPackage(InetSocketAddress from, InetSocketAddress to, long initialTimestamp, String publicKey, String signature,
 	                      String filename, String message) {
-		super(initialTimestamp, finalTimestamp);
+		super(from, to, initialTimestamp);
 		assertThat(publicKey).isNotNull().isNotEmpty();
 		assertThat(signature).isNotNull().isNotEmpty();
 		assertThat(filename).isNotNull().isNotEmpty();

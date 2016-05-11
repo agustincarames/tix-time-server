@@ -12,6 +12,7 @@ import io.netty.util.internal.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 
 public class TixMessageDecoder extends MessageToMessageDecoder<DatagramPacket> {
@@ -23,6 +24,8 @@ public class TixMessageDecoder extends MessageToMessageDecoder<DatagramPacket> {
 		logger.entry(ctx, msg, out);
 		ByteBuf payload = msg.content();
 		TixPackage tixPackage;
+		final InetSocketAddress from = msg.sender();
+		final InetSocketAddress to = msg.recipient();
 		final long initialTimestamp = TixTimestampPackage.TIMESTAMP_READER.apply(payload);
 		final long receivedTimestamp = TixTimestampPackage.TIMESTAMP_READER.apply(payload);
 		final long sentTimestamp = TixTimestampPackage.TIMESTAMP_READER.apply(payload);
@@ -39,15 +42,16 @@ public class TixMessageDecoder extends MessageToMessageDecoder<DatagramPacket> {
 				final String signature = TixDataPackage.DECODER.apply(data[2].trim()).trim();
 				final String logFileName = TixDataPackage.DECODER.apply(data[3].trim()).trim();
 				final String message = TixDataPackage.DECODER.apply(data[4].trim()).trim();
-				tixPackage = new TixDataPackage(initialTimestamp, finalTimestamp, publicKey, signature, logFileName, message);
+				tixPackage = new TixDataPackage(from, to, initialTimestamp, publicKey, signature, logFileName, message);
 			} else {
 				logger.error("Malformed data package received {}", rawData);
 				throw new IllegalArgumentException("Malformed data package received " + rawData);
 			}
 		} else {
-			tixPackage = new TixTimestampPackage(initialTimestamp, finalTimestamp);
+			tixPackage = new TixTimestampPackage(from, to, initialTimestamp);
 			((TixTimestampPackage)tixPackage).setReceptionTimestamp(receivedTimestamp);
 			((TixTimestampPackage)tixPackage).setSentTimestamp(sentTimestamp);
+			((TixTimestampPackage)tixPackage).setFinalTimestamp(finalTimestamp);
 		}
 		out.add(tixPackage);
 		logger.exit(tixPackage);

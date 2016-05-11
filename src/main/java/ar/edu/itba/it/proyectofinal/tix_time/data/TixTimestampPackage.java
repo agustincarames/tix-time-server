@@ -8,6 +8,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.net.InetSocketAddress;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -17,16 +18,28 @@ public class TixTimestampPackage implements TixPackage {
 	public static final Function<ByteBuf, Long> TIMESTAMP_READER = ByteBuf::readLong;
 	public static final BiFunction<ByteBuf, Long, ByteBuf> TIMESTAMP_WRITER = ByteBuf::writeLong;
 
+	private final InetSocketAddress from;
+	private final InetSocketAddress to;
 	private final long initalTimestamp;
-	private final long finalTimestamp;
+	private long finalTimestamp;
 	private long receptionTimestamp;
 	private long sentTimestamp;
 
-	public TixTimestampPackage(long initialTimestamp, long finalTimestamp) {
+	public TixTimestampPackage(InetSocketAddress from, InetSocketAddress to, long initialTimestamp) {
+		assertThat(from).isNotNull();
+		assertThat(to).isNotNull();
 		assertThat(initialTimestamp).isNotNegative();
-		assertThat(finalTimestamp).isNotNegative();
+		this.from = from;
+		this.to = to;
 		this.initalTimestamp = initialTimestamp;
-		this.finalTimestamp = finalTimestamp;
+	}
+
+	public InetSocketAddress getFrom() {
+		return from;
+	}
+
+	public InetSocketAddress getTo() {
+		return to;
 	}
 
 	public long getInitalTimestamp() {
@@ -53,6 +66,11 @@ public class TixTimestampPackage implements TixPackage {
 	public void setReceptionTimestamp(long receptionTimestamp) {
 		assertThat(receptionTimestamp).isNotNegative();
 		this.receptionTimestamp = receptionTimestamp;
+	}
+
+	public void setFinalTimestamp(long finalTimestamp) {
+		assertThat(finalTimestamp).isNotNegative();
+		this.finalTimestamp = finalTimestamp;
 	}
 
 	@Override
@@ -85,10 +103,10 @@ public class TixTimestampPackage implements TixPackage {
 	@Override
 	public String toString() {
 		return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
-				.append(this.getInitalTimestamp())
-				.append(this.getReceptionTimestamp())
-				.append(this.getSentTimestamp())
-				.append(this.getFinalTimestamp())
+				.append("initialTimestamp", this.getInitalTimestamp())
+				.append("receptionTimestamp", this.getReceptionTimestamp())
+				.append("sentTimestamp", this.getSentTimestamp())
+				.append("finalTimestamp", this.getFinalTimestamp())
 				.toString();
 	}
 }
