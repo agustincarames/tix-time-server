@@ -20,62 +20,62 @@ import java.util.concurrent.Executors;
 
 public class TixTimeServer {
 
-	private static final int WORKER_THREADS = Runtime.getRuntime().availableProcessors() * 2;
-	private static final int PORT = 4500;
+	public static final int DEFAULT_WORKER_THREADS = Runtime.getRuntime().availableProcessors() * 2;
+	public static final int DEFAULT_PORT = 4500;
 
 	public static void main( String[] args ) {
 		new TixTimeServer();
-    }
+	}
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
-	
+
 	private TixTimeServer() {
+		logger.info("Starting Server");
 		EventLoopGroup workerGroup;
 		Class<? extends Channel> datagramChannelClass;
 		if (Epoll.isAvailable()) {
 			logger.info("epoll available");
-			workerGroup = new EpollEventLoopGroup(WORKER_THREADS);
+			workerGroup = new EpollEventLoopGroup(DEFAULT_WORKER_THREADS);
 			datagramChannelClass = EpollDatagramChannel.class;
 		} else {
 			logger.info("epoll unavailable");
 			logger.warn("epoll unavailable performance may be reduced due to single thread scheme.");
-			workerGroup = new NioEventLoopGroup(WORKER_THREADS, Executors.privilegedThreadFactory());
+			workerGroup = new NioEventLoopGroup(DEFAULT_WORKER_THREADS, Executors.privilegedThreadFactory());
 			datagramChannelClass = NioDatagramChannel.class;
 		}
-		
+
 		try {
-			logger.info("Setting up server");
+			logger.info("Setting up");
 			Bootstrap b = new Bootstrap();
 			b.group(workerGroup)
-			 .channel(datagramChannelClass)
-			 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-			 .option(ChannelOption.SO_BROADCAST, true)
-			 .handler(new ChannelInitializer<DatagramChannel>() {
-				@Override
-				protected void initChannel(DatagramChannel ch)
-						throws Exception {
-					ch.pipeline().addLast(new TixMessageDecoder());
-					ch.pipeline().addLast(new TixUdpServerHandler());
-					ch.pipeline().addLast(new TixMessageEncoder());
-				}
-			});
+					.channel(datagramChannelClass)
+					.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+					.handler(new ChannelInitializer<DatagramChannel>() {
+						@Override
+						protected void initChannel(DatagramChannel ch)
+								throws Exception {
+							ch.pipeline().addLast(new TixMessageDecoder());
+							ch.pipeline().addLast(new TixUdpServerHandler());
+							ch.pipeline().addLast(new TixMessageEncoder());
+						}
+					});
 			if (Epoll.isAvailable()) {
 				b.option(EpollChannelOption.SO_REUSEPORT, true);
 			}
 			ChannelFuture future;
-			logger.info("Binding server into port {}", PORT);
-			for (int i = 0; i < WORKER_THREADS; i++) {
-				future = b.bind(PORT).sync().channel().closeFuture().await();
+			logger.info("Binding into port {}", DEFAULT_PORT);
+			for (int i = 0; i < DEFAULT_WORKER_THREADS; i++) {
+				future = b.bind(DEFAULT_PORT).sync().channel().closeFuture().await();
 				if (!future.isSuccess()) {
 					logger.error("Channel Future {} did not succeed", future);
 					throw new Error("Channel Future did not succeed");
 				}
 			}
 		} catch (InterruptedException e) {
-			logger.fatal("Server interrupted", e);
+			logger.fatal("Interrupted", e);
 			e.printStackTrace();
 		} finally {
-			logger.info("Server shutting down");
+			logger.info("Shutting down");
 			workerGroup.shutdownGracefully();
 		}
 	}

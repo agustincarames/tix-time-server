@@ -37,8 +37,7 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 		response.setReceptionTimestamp(TixTimeUitl.NANOS_OF_DAY.get());
 		logger.info("It's a timestamp!");
 		response.setSentTimestamp(TixTimeUitl.NANOS_OF_DAY.get());
-		ChannelFuture f = ctx.writeAndFlush(response);
-		f.addListener(ChannelFutureListener.CLOSE);
+		ctx.pipeline().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
 		logger.exit();
 	}
 	
