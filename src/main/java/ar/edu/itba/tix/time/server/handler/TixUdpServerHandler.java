@@ -3,16 +3,29 @@ package ar.edu.itba.tix.time.server.handler;
 import ar.edu.itba.tix.time.core.data.TixDataPackage;
 import ar.edu.itba.tix.time.core.data.TixTimestampPackage;
 import ar.edu.itba.tix.time.core.util.TixTimeUitl;
-import io.netty.channel.ChannelFuture;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
 public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
+	private final Connection queueConnection;
+	private final Channel queueChannel;
+	private final String queueName;
+
+	public TixUdpServerHandler(Connection queueConnection, Channel queueChannel, String queueName) throws IOException, TimeoutException {
+		this.queueConnection = queueConnection;
+		this.queueChannel = queueChannel;
+		this.queueName = queueName;
+	}
 
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg)
@@ -20,6 +33,7 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 		logger.entry(ctx, msg);
 		TixTimestampPackage response;
 		TixTimestampPackage incoming;
+		long receptionTimestamp = TixTimeUitl.NANOS_OF_DAY.get();
 		if (!(msg instanceof TixTimestampPackage)) {
 			logger.error("Unexpected message type. " +
 					"Expected instance of TixTimestampPackage, recieved message of type {}", msg.getClass().getName());
@@ -29,13 +43,14 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 		if (msg instanceof TixDataPackage) {
 			TixDataPackage dataIncoming = (TixDataPackage) incoming;
 			response = new TixDataPackage(dataIncoming.getTo(), dataIncoming.getFrom(), dataIncoming.getInitalTimestamp(),
-					dataIncoming.getPublicKey(), dataIncoming.getSignature(), dataIncoming.getFilename(), dataIncoming.getMessage());
-			logger.info("It's data!");
+					dataIncoming.getPublicKey(), dataIncoming.getFilename(), dataIncoming.getMessage(), dataIncoming.getSignature());
+			String dataIncomingJson = dataIncoming.toJson();
+			this.queueChannel.basicPublish("", queueName, null, dataIncomingJson.getBytes());
+			logger.debug("Data sent to queue: " + dataIncomingJson);
 		} else {
 			response = new TixTimestampPackage(incoming.getTo(), incoming.getFrom(), incoming.getInitalTimestamp());
 		}
-		response.setReceptionTimestamp(TixTimeUitl.NANOS_OF_DAY.get());
-		logger.info("It's a timestamp!");
+		response.setReceptionTimestamp(receptionTimestamp);
 		response.setSentTimestamp(TixTimeUitl.NANOS_OF_DAY.get());
 		ctx.pipeline().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
 		logger.exit();
