@@ -1,10 +1,11 @@
 package ar.edu.itba.tix.time.server.handler;
 
-import ar.edu.itba.tix.time.core.data.TixDataPackage;
-import ar.edu.itba.tix.time.core.data.TixTimestampPackage;
-import ar.edu.itba.tix.time.core.decoder.TixMessageDecoder;
-import ar.edu.itba.tix.time.core.encoder.TixMessageEncoder;
-import ar.edu.itba.tix.time.core.util.TixTimeUitl;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tix_measurements.time.core.data.TixDataPacket;
+import com.github.tix_measurements.time.core.data.TixTimestampPacket;
+import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
+import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
+import com.github.tix_measurements.time.core.util.TixTimeUtils;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -70,7 +71,7 @@ public class TixUdpServerHandlerTest {
 		}
 	}
 
-	private <T extends TixTimestampPackage> T passThroughChannel(T message) {
+	private <T extends TixTimestampPacket> T passThroughChannel(T message) {
 		DatagramPacket datagramPacket = encodeMessage(message);
 		testChannel.writeInbound(datagramPacket);
 		Object returnedDatagram = testChannel.readOutbound();
@@ -78,14 +79,14 @@ public class TixUdpServerHandlerTest {
 		return returnedMessage;
 	}
 
-	private <T extends TixTimestampPackage> T decodeDatagram(DatagramPacket datagramPacket) {
+	private <T extends TixTimestampPacket> T decodeDatagram(DatagramPacket datagramPacket) {
 		assertThat(encoderDecoderChannel.writeInbound(datagramPacket)).isTrue();
 		Object o = encoderDecoderChannel.readInbound();
 		assertThat(o).isNotNull();
 		return (T)o;
 	}
 
-	private <T extends TixTimestampPackage> DatagramPacket encodeMessage(T message) {
+	private <T extends TixTimestampPacket> DatagramPacket encodeMessage(T message) {
 		assertThat(encoderDecoderChannel.writeOutbound(message)).isTrue();
 		Object o = encoderDecoderChannel.readOutbound();
 		assertThat(o).isNotNull();
@@ -94,35 +95,36 @@ public class TixUdpServerHandlerTest {
 
 	@Test
 	public void testTixTimestampPackage() {
-		long initialTimestamp = TixTimeUitl.NANOS_OF_DAY.get();
-		TixTimestampPackage timestampPackage = new TixTimestampPackage(from, to, initialTimestamp);
-		TixTimestampPackage returnedTimestampPackage = passThroughChannel(timestampPackage);
-		long finalTimestamp = TixTimeUitl.NANOS_OF_DAY.get();
+		long initialTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
+		TixTimestampPacket timestampPackage = new TixTimestampPacket(from, to, initialTimestamp);
+		TixTimestampPacket returnedTimestampPackage = passThroughChannel(timestampPackage);
+		long finalTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
 		assertReturnedPackageTimestamps(timestampPackage, returnedTimestampPackage, finalTimestamp);
 	}
 
 	@Test
 	public void testTixDataPackage() throws IOException {
-		long initialTimestamp = TixTimeUitl.NANOS_OF_DAY.get();
-		TixDataPackage dataPackage = new TixDataPackage(from, to, initialTimestamp,
+		long initialTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
+		TixDataPacket dataPackage = new TixDataPacket(from, to, initialTimestamp,
 				publicKey, filename, message, signature);
-		TixDataPackage returnedDataPackage = passThroughChannel(dataPackage);
-		long finalTimestamp = TixTimeUitl.NANOS_OF_DAY.get();
+		TixDataPacket returnedDataPackage = passThroughChannel(dataPackage);
+		long finalTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
 		assertReturnedPackageTimestamps(dataPackage, returnedDataPackage, finalTimestamp);
-		verify(queueChannel).basicPublish("", queueName, null, dataPackage.toJson().getBytes());
+		ObjectMapper mapper = new ObjectMapper();
+		verify(queueChannel).basicPublish("", queueName, null, mapper.writeValueAsBytes(dataPackage));
 	}
 
-	private void assertReturnedPackageTimestamps(TixTimestampPackage originalPackage, TixTimestampPackage returnedPackage,
+	private void assertReturnedPackageTimestamps(TixTimestampPacket originalPackage, TixTimestampPacket returnedPackage,
 	                                             long finalTimestamp) {
 		assertThat(returnedPackage.getFrom()).isEqualTo(originalPackage.getTo());
 		assertThat(returnedPackage.getTo()).isEqualTo(originalPackage.getFrom());
-		assertThat(returnedPackage.getInitalTimestamp()).isEqualTo(originalPackage.getInitalTimestamp());
+		assertThat(returnedPackage.getInitialTimestamp()).isEqualTo(originalPackage.getInitialTimestamp());
 
 		Stream.of(returnedPackage.getReceptionTimestamp(), returnedPackage.getSentTimestamp())
 				.forEach(internalTimestamp -> {
 					assertThat(internalTimestamp).isNotZero();
 					assertThat(internalTimestamp).isPositive();
-					assertThat(internalTimestamp).isGreaterThan(originalPackage.getInitalTimestamp());
+					assertThat(internalTimestamp).isGreaterThan(originalPackage.getInitialTimestamp());
 					assertThat(internalTimestamp).isLessThan(finalTimestamp);
 				});
 

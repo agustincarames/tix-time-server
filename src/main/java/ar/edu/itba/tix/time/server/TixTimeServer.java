@@ -1,9 +1,9 @@
 package ar.edu.itba.tix.time.server;
 
-import ar.edu.itba.tix.time.core.decoder.TixMessageDecoder;
-import ar.edu.itba.tix.time.core.encoder.TixMessageEncoder;
 import ar.edu.itba.tix.time.server.configuration.ConfigurationService;
 import ar.edu.itba.tix.time.server.handler.TixUdpServerHandler;
+import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
+import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
 import com.rabbitmq.client.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;

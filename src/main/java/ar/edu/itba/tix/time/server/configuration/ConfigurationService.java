@@ -35,6 +35,7 @@ public enum ConfigurationService {
 	private int port;
 
 	private ConfigurationService() {
+		initConfigurations(configurationsMap.get("default"));  // Init configuration with defaults
 		Configuration environmentConfig = new EnvironmentConfiguration();
 		String environment = environmentConfig.getString("ENVIRONMENT_PROFILE").trim();
 		String configFile = configurationsMap.get(environment);
