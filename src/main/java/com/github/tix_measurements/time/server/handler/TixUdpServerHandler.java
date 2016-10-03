@@ -1,4 +1,4 @@
-package ar.edu.itba.tix.time.server.handler;
+package com.github.tix_measurements.time.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tix_measurements.time.core.data.TixDataPacket;

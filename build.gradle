@@ -1,10 +1,20 @@
 group 'ar.edu.itba.it.tix'
 version '0.1.0-SNAPSHOT'
 
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.4.1.RELEASE")
+    }
+}
+
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'jacoco'
+apply plugin: 'spring-boot'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -19,6 +29,7 @@ ext {
     amqpClientVersion = "3.6.2"
     nettyVersion = "4.0.36.Final"
     jacksonVersion = "2.8.3"
+    commonsBeanUtilsVersion = "1.9.2"
     commonsConfigVersion = "2.1"
     commonsLangVersion = "3.4"
     guavaVersion = "19.0"
@@ -29,6 +40,9 @@ ext {
 }
 
 dependencies {
+    // Base
+    compile group: "org.springframework.boot", name: "spring-boot-starter"
+    testCompile group: "org.springframework.boot", name: "spring-boot-starter-test"
     // Core
     compile group: 'com.github.tix-measurements', name: 'tix-time-core', version: "${tixTimeCoreVersion}"
     compile group: 'javax.jms', name: 'jms', version: "${jmsVersion}"
@@ -37,6 +51,7 @@ dependencies {
     // Libs & Misc.
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jacksonVersion}"
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jacksonVersion}"
+    compile group: 'commons-beanutils', name: 'commons-beanutils', version: "${commonsBeanUtilsVersion}"
     compile group: 'org.apache.commons', name: 'commons-configuration2', version: "${commonsConfigVersion}"
     compile group: 'org.apache.commons', name: 'commons-lang3', version: "${commonsLangVersion}"
     compile group: 'com.google.guava', name: 'guava', version: "${guavaVersion}"

@@ -1,7 +1,6 @@
-package ar.edu.itba.tix.time.server;
+package com.github.tix_measurements.time.server;
 
-import ar.edu.itba.tix.time.server.configuration.ConfigurationService;
-import ar.edu.itba.tix.time.server.handler.TixUdpServerHandler;
+import com.github.tix_measurements.time.server.handler.TixUdpServerHandler;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
 import com.rabbitmq.client.*;
@@ -18,30 +17,48 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.util.concurrent.Executors;
 
-public class TixTimeServer {
-	private final ConfigurationService configs = ConfigurationService.INSTANCE;
+@SpringBootApplication
+public class TixTimeServer implements CommandLineRunner {
 
 	public static void main( String[] args ) {
-		new TixTimeServer();
+		SpringApplication.run(TixTimeServer.class, args);
 	}
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 
-	private TixTimeServer() {
+	@Value("${tix-time-server.queue-host}")
+	private String queueHost;
+
+	@Value("${tix-time-server.queue-name}")
+	private String queueName;
+
+	@Value("${tix-time-server.worker-threads-quantity}")
+	private int workerThreadsQuantity;
+
+	@Value("${tix-time-server.port}")
+	private int port;
+
+	@Override
+	public void run(String... args) throws Exception {
+
 		logger.info("Starting Server");
 		EventLoopGroup workerGroup;
 		Class<? extends Channel> datagramChannelClass;
 		if (Epoll.isAvailable()) {
 			logger.info("epoll available");
-			workerGroup = new EpollEventLoopGroup(configs.workerThreadsQuantity());
+			workerGroup = new EpollEventLoopGroup(workerThreadsQuantity);
 			datagramChannelClass = EpollDatagramChannel.class;
 		} else {
 			logger.info("epoll unavailable");
 			logger.warn("epoll unavailable performance may be reduced due to single thread scheme.");
-			workerGroup = new NioEventLoopGroup(configs.workerThreadsQuantity(), Executors.privilegedThreadFactory());
+			workerGroup = new NioEventLoopGroup(workerThreadsQuantity, Executors.privilegedThreadFactory());
 			datagramChannelClass = NioDatagramChannel.class;
 		}
 
@@ -57,14 +74,14 @@ public class TixTimeServer {
 								throws Exception {
 
 							ConnectionFactory connectionFactory = new ConnectionFactory();
-							connectionFactory.setHost(configs.queueHost());
+							connectionFactory.setHost(queueHost);
 							Connection queueConnection = connectionFactory.newConnection();
 							logger.info("Connection with queue server established.");
 							com.rabbitmq.client.Channel queueChannel = queueConnection.createChannel();
-							queueChannel.queueDeclare(configs.queueName(), true, false, false, null); //Create or attach to the queue queueName, that is durable, non-exclusive and non auto-deletable1
+							queueChannel.queueDeclare(queueName, true, false, false, null); //Create or attach to the queue queueName, that is durable, non-exclusive and non auto-deletable1
 							logger.info("Queue connected successfully");
 							ch.pipeline().addLast(new TixMessageDecoder());
-							ch.pipeline().addLast(new TixUdpServerHandler(queueConnection, queueChannel, configs.queueName()));
+							ch.pipeline().addLast(new TixUdpServerHandler(queueConnection, queueChannel, queueName));
 							ch.pipeline().addLast(new TixMessageEncoder());
 						}
 					});
@@ -72,9 +89,9 @@ public class TixTimeServer {
 				b.option(EpollChannelOption.SO_REUSEPORT, true);
 			}
 			ChannelFuture future;
-			logger.info("Binding into port {}", configs.port());
-			for (int i = 0; i < configs.workerThreadsQuantity(); i++) {
-				future = b.bind(configs.port()).sync().channel().closeFuture().await();
+			logger.info("Binding into port {}", port);
+			for (int i = 0; i < workerThreadsQuantity; i++) {
+				future = b.bind(port).sync().channel().closeFuture().await();
 				if (!future.isSuccess()) {
 					logger.error("Channel Future {} did not succeed", future);
 					throw new Error("Channel Future did not succeed");
