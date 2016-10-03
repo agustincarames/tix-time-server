@@ -18,6 +18,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.security.*;
 import java.util.Base64;
+import java.util.Random;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
@@ -27,6 +28,7 @@ public class TixUdpServerHandlerTest {
 
 	private EmbeddedChannel encoderDecoderChannel;
 	private EmbeddedChannel testChannel;
+	private Random random;
 	private InetSocketAddress from;
 	private InetSocketAddress to;
 	private Connection queueConnection;
@@ -51,6 +53,7 @@ public class TixUdpServerHandlerTest {
 				new TixMessageEncoder());
 		from = new InetSocketAddress(InetAddress.getLocalHost(), 4500);
 		to = new InetSocketAddress(InetAddress.getLocalHost(), 4501);
+		random = new Random();
 		setUpData();
 	}
 
@@ -71,14 +74,17 @@ public class TixUdpServerHandlerTest {
 		}
 	}
 
-	private <T extends TixTimestampPacket> T passThroughChannel(T message) {
+	private <T extends TixTimestampPacket> T passThroughChannel(T message) throws InterruptedException {
+		Thread.sleep(random.nextInt(10), random.nextInt(100));
 		DatagramPacket datagramPacket = encodeMessage(message);
 		testChannel.writeInbound(datagramPacket);
 		Object returnedDatagram = testChannel.readOutbound();
 		T returnedMessage = decodeDatagram((DatagramPacket)returnedDatagram);
+		Thread.sleep(random.nextInt(10), random.nextInt(100));
 		return returnedMessage;
 	}
 
+	@SuppressWarnings("unchecked")
 	private <T extends TixTimestampPacket> T decodeDatagram(DatagramPacket datagramPacket) {
 		assertThat(encoderDecoderChannel.writeInbound(datagramPacket)).isTrue();
 		Object o = encoderDecoderChannel.readInbound();
@@ -94,7 +100,7 @@ public class TixUdpServerHandlerTest {
 	}
 
 	@Test
-	public void testTixTimestampPackage() {
+	public void testTixTimestampPackage() throws InterruptedException {
 		long initialTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
 		TixTimestampPacket timestampPackage = new TixTimestampPacket(from, to, initialTimestamp);
 		TixTimestampPacket returnedTimestampPackage = passThroughChannel(timestampPackage);
@@ -103,7 +109,7 @@ public class TixUdpServerHandlerTest {
 	}
 
 	@Test
-	public void testTixDataPackage() throws IOException {
+	public void testTixDataPackage() throws IOException, InterruptedException {
 		long initialTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
 		TixDataPacket dataPackage = new TixDataPacket(from, to, initialTimestamp,
 				publicKey, filename, message, signature);

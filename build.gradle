@@ -25,7 +25,6 @@ repositories {
 
 ext {
     tixTimeCoreVersion = "0.1.0"
-    jmsVersion = "1.1"
     amqpClientVersion = "3.6.2"
     nettyVersion = "4.0.36.Final"
     jacksonVersion = "2.8.3"
@@ -45,7 +44,6 @@ dependencies {
     testCompile group: "org.springframework.boot", name: "spring-boot-starter-test"
     // Core
     compile group: 'com.github.tix-measurements', name: 'tix-time-core', version: "${tixTimeCoreVersion}"
-    compile group: 'javax.jms', name: 'jms', version: "${jmsVersion}"
     compile group: 'com.rabbitmq', name: 'amqp-client', version: "${amqpClientVersion}"
     compile group: 'io.netty', name: 'netty-all', version: "${nettyVersion}"
     // Libs & Misc.
