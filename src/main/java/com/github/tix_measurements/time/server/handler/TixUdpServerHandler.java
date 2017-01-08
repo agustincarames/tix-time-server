@@ -2,8 +2,8 @@ package com.github.tix_measurements.time.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tix_measurements.time.core.data.TixDataPacket;
-import com.github.tix_measurements.time.core.data.TixTimestampPacket;
-import com.github.tix_measurements.time.core.util.TixTimeUtils;
+import com.github.tix_measurements.time.core.data.TixPacket;
+import com.github.tix_measurements.time.core.util.TixCoreUtils;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import io.netty.channel.ChannelFutureListener;
@@ -32,29 +32,29 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 	public void channelRead(ChannelHandlerContext ctx, Object msg)
 			throws Exception {
 		logger.entry(ctx, msg);
-		TixTimestampPacket response;
-		TixTimestampPacket incoming;
-		long receptionTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
-		if (!(msg instanceof TixTimestampPacket)) {
+		TixPacket response;
+		TixPacket incoming;
+		long receptionTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
+		if (!(msg instanceof TixPacket)) {
 			logger.error("Unexpected message type. " +
 					"Expected instance of TixTimestampPackage, recieved message of type {}", msg.getClass().getName());
 			throw new IllegalArgumentException("Expected a TixTimestampPackage");
 		}
-		incoming = (TixTimestampPacket) msg;
+		incoming = (TixPacket) msg;
 		if (msg instanceof TixDataPacket) {
 			TixDataPacket dataIncoming = (TixDataPacket) incoming;
 			response = new TixDataPacket(dataIncoming.getTo(), dataIncoming.getFrom(), dataIncoming.getInitialTimestamp(),
-					dataIncoming.getPublicKey(), dataIncoming.getFilename(), dataIncoming.getMessage(), dataIncoming.getSignature());
+					dataIncoming.getPublicKey(), dataIncoming.getMessage(), dataIncoming.getSignature());
 			ObjectMapper mapper = new ObjectMapper();
-			String dataIncomingJson = mapper.writeValueAsString(dataIncoming);
-			this.queueChannel.basicPublish("", queueName, null, dataIncomingJson.getBytes());
-			logger.debug("Data sent to queue: " + dataIncomingJson);
+			byte[] bytes = mapper.writeValueAsBytes(dataIncoming);
+			this.queueChannel.basicPublish("", queueName, null, bytes);
+			logger.debug("Data sent to queue: " + new String(bytes));
 		} else {
-			response = new TixTimestampPacket(incoming.getTo(), incoming.getFrom(), incoming.getInitialTimestamp());
+			response = new TixPacket(incoming.getTo(), incoming.getFrom(), incoming.getType(), incoming.getInitialTimestamp());
 		}
 		response.setReceptionTimestamp(receptionTimestamp);
-		response.setSentTimestamp(TixTimeUtils.NANOS_OF_DAY.get());
-		ctx.pipeline().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+		response.setSentTimestamp(TixCoreUtils.NANOS_OF_DAY.get());
+		ctx.pipeline().writeAndFlush(response);
 		logger.exit();
 	}
 	

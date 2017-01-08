@@ -1,25 +1,16 @@
-tix-time-server:
-  queue:
-    name: server-condenser-test
-    host: localhost
-  worker-threads-quantity: 16
-  port: 4500
+environment: default
+queue:
+  name: server-condenser-test
+  host: localhost
+worker-threads-quantity: 16
+port: 4500
 ---
-spring:
-  profiles: test
-tix-time-server:
-  queue:
-    name: ${random.value}
-  port: ${random.int[1024,65536]}
+environment: test
 ---
-spring:
-  profiles: staging
-tix-time-server:
-  queue:
-    name: server-condenser-staging
+environment: stage
+queue:
+  name: server-condenser-staging
 ---
-spring:
-  profiles: production
-tix-time-server:
-  queue:
-    name: server-condenser-prod
+environment: prod
+queue:
+  name: server-condenser-prod

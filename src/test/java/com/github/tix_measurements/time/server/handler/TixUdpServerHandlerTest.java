@@ -2,10 +2,12 @@ package com.github.tix_measurements.time.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tix_measurements.time.core.data.TixDataPacket;
-import com.github.tix_measurements.time.core.data.TixTimestampPacket;
+import com.github.tix_measurements.time.core.data.TixPacket;
+import com.github.tix_measurements.time.core.data.TixPacketType;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
-import com.github.tix_measurements.time.core.util.TixTimeUtils;
+import com.github.tix_measurements.time.core.util.TixCoreUtils;
+import com.github.tix_measurements.time.server.utils.TestDataUtils;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -16,8 +18,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.security.*;
-import java.util.Base64;
 import java.util.Random;
 import java.util.stream.Stream;
 
@@ -34,10 +34,6 @@ public class TixUdpServerHandlerTest {
 	private Connection queueConnection;
 	private Channel queueChannel;
 	private String queueName;
-	private String publicKey;
-	private String filename;
-	private String message;
-	private byte[] signature;
 
 	@Before
 	public void setUp() throws Exception {
@@ -54,27 +50,9 @@ public class TixUdpServerHandlerTest {
 		from = new InetSocketAddress(InetAddress.getLocalHost(), 4500);
 		to = new InetSocketAddress(InetAddress.getLocalHost(), 4501);
 		random = new Random();
-		setUpData();
 	}
 
-	private void setUpData() {
-		try {
-			KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-			generator.initialize(512);
-			KeyPair keyPair = generator.genKeyPair();
-			publicKey = new String(Base64.getEncoder().encode(keyPair.getPublic().getEncoded()));
-			filename = "a";
-			message = "a";
-			Signature signer = Signature.getInstance("SHA1WithRSA");
-			signer.initSign(keyPair.getPrivate());
-			signer.update(message.getBytes());
-			signature = signer.sign();
-		} catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private <T extends TixTimestampPacket> T passThroughChannel(T message) throws InterruptedException {
+	private <T extends TixPacket> T passThroughChannel(T message) throws InterruptedException {
 		Thread.sleep(random.nextInt(10), random.nextInt(100));
 		DatagramPacket datagramPacket = encodeMessage(message);
 		testChannel.writeInbound(datagramPacket);
@@ -85,14 +63,14 @@ public class TixUdpServerHandlerTest {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T extends TixTimestampPacket> T decodeDatagram(DatagramPacket datagramPacket) {
+	private <T extends TixPacket> T decodeDatagram(DatagramPacket datagramPacket) {
 		assertThat(encoderDecoderChannel.writeInbound(datagramPacket)).isTrue();
 		Object o = encoderDecoderChannel.readInbound();
 		assertThat(o).isNotNull();
 		return (T)o;
 	}
 
-	private <T extends TixTimestampPacket> DatagramPacket encodeMessage(T message) {
+	private <T extends TixPacket> DatagramPacket encodeMessage(T message) {
 		assertThat(encoderDecoderChannel.writeOutbound(message)).isTrue();
 		Object o = encoderDecoderChannel.readOutbound();
 		assertThat(o).isNotNull();
@@ -101,26 +79,27 @@ public class TixUdpServerHandlerTest {
 
 	@Test
 	public void testTixTimestampPackage() throws InterruptedException {
-		long initialTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
-		TixTimestampPacket timestampPackage = new TixTimestampPacket(from, to, initialTimestamp);
-		TixTimestampPacket returnedTimestampPackage = passThroughChannel(timestampPackage);
-		long finalTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
+		long initialTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
+		TixPacket timestampPackage = new TixPacket(from, to, TixPacketType.SHORT, initialTimestamp);
+		TixPacket returnedTimestampPackage = passThroughChannel(timestampPackage);
+		long finalTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
 		assertReturnedPackageTimestamps(timestampPackage, returnedTimestampPackage, finalTimestamp);
 	}
 
 	@Test
 	public void testTixDataPackage() throws IOException, InterruptedException {
-		long initialTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
-		TixDataPacket dataPackage = new TixDataPacket(from, to, initialTimestamp,
-				publicKey, filename, message, signature);
+		long initialTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
+		byte[] message = TestDataUtils.INSTANCE.generateMessage();
+		TixDataPacket dataPackage = new TixDataPacket(from, to, initialTimestamp, TestDataUtils.INSTANCE.getPublicKey(),
+				message, TestDataUtils.INSTANCE.getSignature(message));
 		TixDataPacket returnedDataPackage = passThroughChannel(dataPackage);
-		long finalTimestamp = TixTimeUtils.NANOS_OF_DAY.get();
+		long finalTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
 		assertReturnedPackageTimestamps(dataPackage, returnedDataPackage, finalTimestamp);
 		ObjectMapper mapper = new ObjectMapper();
 		verify(queueChannel).basicPublish("", queueName, null, mapper.writeValueAsBytes(dataPackage));
 	}
 
-	private void assertReturnedPackageTimestamps(TixTimestampPacket originalPackage, TixTimestampPacket returnedPackage,
+	private void assertReturnedPackageTimestamps(TixPacket originalPackage, TixPacket returnedPackage,
 	                                             long finalTimestamp) {
 		assertThat(returnedPackage.getFrom()).isEqualTo(originalPackage.getTo());
 		assertThat(returnedPackage.getTo()).isEqualTo(originalPackage.getFrom());

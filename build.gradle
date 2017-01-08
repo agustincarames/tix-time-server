@@ -5,16 +5,12 @@ buildscript {
     repositories {
         mavenCentral()
     }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.4.1.RELEASE")
-    }
 }
 
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'jacoco'
-apply plugin: 'spring-boot'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -24,7 +20,8 @@ repositories {
 }
 
 ext {
-    tixTimeCoreVersion = "0.1.0"
+	snakeyamlVersion = "1.17"
+    tixTimeCoreVersion = "2.1.0"
     amqpClientVersion = "3.6.2"
     nettyVersion = "4.0.36.Final"
     jacksonVersion = "2.8.3"
@@ -39,21 +36,19 @@ ext {
 }
 
 dependencies {
-    // Base
-    compile group: "org.springframework.boot", name: "spring-boot-starter"
-    testCompile group: "org.springframework.boot", name: "spring-boot-starter-test"
-    // Core
+	// Core
     compile group: 'com.github.tix-measurements', name: 'tix-time-core', version: "${tixTimeCoreVersion}"
     compile group: 'com.rabbitmq', name: 'amqp-client', version: "${amqpClientVersion}"
     compile group: 'io.netty', name: 'netty-all', version: "${nettyVersion}"
     // Libs & Misc.
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jacksonVersion}"
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jacksonVersion}"
-    compile group: 'commons-beanutils', name: 'commons-beanutils', version: "${commonsBeanUtilsVersion}"
-    compile group: 'org.apache.commons', name: 'commons-configuration2', version: "${commonsConfigVersion}"
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: "${commonsLangVersion}"
-    compile group: 'com.google.guava', name: 'guava', version: "${guavaVersion}"
-    compile group: 'org.assertj', name: 'assertj-core', version: "${assertjVersion}"
+	compile group: 'org.yaml', name: 'snakeyaml', version: "${snakeyamlVersion}"
+	compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jacksonVersion}"
+	compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jacksonVersion}"
+	compile group: 'commons-beanutils', name: 'commons-beanutils', version: "${commonsBeanUtilsVersion}"
+	compile group: 'org.apache.commons', name: 'commons-configuration2', version: "${commonsConfigVersion}"
+	compile group: 'org.apache.commons', name: 'commons-lang3', version: "${commonsLangVersion}"
+	compile group: 'com.google.guava', name: 'guava', version: "${guavaVersion}"
+	compile group: 'org.assertj', name: 'assertj-core', version: "${assertjVersion}"
     // Logging
     compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: "${log4jVersion}"
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: "${log4jVersion}"
