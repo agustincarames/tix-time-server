@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tix_measurements.time.core.data.TixDataPacket;
 import com.github.tix_measurements.time.core.data.TixPacket;
 import com.github.tix_measurements.time.core.util.TixCoreUtils;
+import com.github.tix_measurements.time.server.util.jackson.TixPacketSerDe;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
@@ -21,11 +21,13 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 	private final Connection queueConnection;
 	private final Channel queueChannel;
 	private final String queueName;
+	private final TixPacketSerDe serde;
 
 	public TixUdpServerHandler(Connection queueConnection, Channel queueChannel, String queueName) throws IOException, TimeoutException {
 		this.queueConnection = queueConnection;
 		this.queueChannel = queueChannel;
 		this.queueName = queueName;
+		this.serde = new TixPacketSerDe();
 	}
 
 	@Override
@@ -45,8 +47,7 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 			TixDataPacket dataIncoming = (TixDataPacket) incoming;
 			response = new TixDataPacket(dataIncoming.getTo(), dataIncoming.getFrom(), dataIncoming.getInitialTimestamp(),
 					dataIncoming.getPublicKey(), dataIncoming.getMessage(), dataIncoming.getSignature());
-			ObjectMapper mapper = new ObjectMapper();
-			byte[] bytes = mapper.writeValueAsBytes(dataIncoming);
+			byte[] bytes = serde.serialize(dataIncoming);
 			this.queueChannel.basicPublish("", queueName, null, bytes);
 			logger.debug("Data sent to queue: " + new String(bytes));
 		} else {
