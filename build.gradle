@@ -21,7 +21,7 @@ repositories {
 
 ext {
 	snakeyamlVersion = "1.17"
-    tixTimeCoreVersion = "2.1.0"
+    tixTimeCoreVersion = "2.1.1"
     amqpClientVersion = "3.6.2"
     nettyVersion = "4.0.36.Final"
     jacksonVersion = "2.8.3"
