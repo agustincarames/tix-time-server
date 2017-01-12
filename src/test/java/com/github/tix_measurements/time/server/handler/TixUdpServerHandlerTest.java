@@ -1,12 +1,12 @@
 package com.github.tix_measurements.time.server.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tix_measurements.time.core.data.TixDataPacket;
 import com.github.tix_measurements.time.core.data.TixPacket;
 import com.github.tix_measurements.time.core.data.TixPacketType;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
 import com.github.tix_measurements.time.core.util.TixCoreUtils;
+import com.github.tix_measurements.time.server.util.jackson.TixPacketSerDe;
 import com.github.tix_measurements.time.server.utils.TestDataUtils;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -21,8 +21,9 @@ import java.net.InetSocketAddress;
 import java.util.Random;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class TixUdpServerHandlerTest {
 
@@ -95,8 +96,8 @@ public class TixUdpServerHandlerTest {
 		TixDataPacket returnedDataPackage = passThroughChannel(dataPackage);
 		long finalTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
 		assertReturnedPackageTimestamps(dataPackage, returnedDataPackage, finalTimestamp);
-		ObjectMapper mapper = new ObjectMapper();
-		verify(queueChannel).basicPublish("", queueName, null, mapper.writeValueAsBytes(dataPackage));
+		TixPacketSerDe serde = new TixPacketSerDe();
+		verify(queueChannel).basicPublish("", queueName, null, serde.serialize(dataPackage));
 	}
 
 	private void assertReturnedPackageTimestamps(TixPacket originalPackage, TixPacket returnedPackage,
