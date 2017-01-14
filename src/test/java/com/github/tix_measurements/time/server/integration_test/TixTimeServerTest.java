@@ -135,6 +135,7 @@ public class TixTimeServerTest {
 		ObjectMapper mapper = new ObjectMapper();
 		TixHttpServerHandler.StatusMessage expectedStatus = new TixHttpServerHandler.StatusMessage(true);
 		assertThat(responseContent).isEqualTo(mapper.writeValueAsString(expectedStatus));
+		server.stop();
 	}
 
 	private String getEntityContent(HttpEntity entity) throws IOException {

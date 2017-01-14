@@ -17,7 +17,6 @@ import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
-import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -45,7 +44,7 @@ public class TixTimeServer {
 
 	private final int httpPort;
 
-	private final ChannelFuture[] futures;
+	private final ChannelFuture[] udpFutures;
 
 	private final Bootstrap udpBootstrap;
 
@@ -53,6 +52,7 @@ public class TixTimeServer {
 
 	private EventLoopGroup udpWorkerGroup = null;
 
+	private ChannelFuture httpFuture = null;
 	private EventLoopGroup httpMasterGroup = null;
 	private EventLoopGroup httpWorkerGroup = null;
 
@@ -84,7 +84,7 @@ public class TixTimeServer {
 		this.workerThreadsQuantity = workerThreadsQuantity;
 		this.udpPort = udpPort;
 		this.httpPort = httpPort;
-		this.futures = new ChannelFuture[this.workerThreadsQuantity];
+		this.udpFutures = new ChannelFuture[this.workerThreadsQuantity];
 		this.udpBootstrap = new Bootstrap();
 		this.httpBootstrap = new ServerBootstrap();
 	}
@@ -126,8 +126,8 @@ public class TixTimeServer {
 			udpBootstrap.option(EpollChannelOption.SO_REUSEPORT, true);
 		}
 		logger.info("Binding UDP into port {}", udpPort);
-		for (int i = 0; i < futures.length; i++) {
-			futures[i] = udpBootstrap.bind(udpPort).sync().channel().closeFuture();
+		for (int i = 0; i < udpFutures.length; i++) {
+			udpFutures[i] = udpBootstrap.bind(udpPort).sync().channel().closeFuture();
 		}
 	}
 
@@ -147,7 +147,7 @@ public class TixTimeServer {
 						ch.pipeline().addLast(new TixHttpServerHandler());
 					}
 				});
-		httpBootstrap.bind(httpPort).sync();
+		httpFuture = httpBootstrap.bind(httpPort).sync();
 	}
 
 	public void start() {
@@ -162,15 +162,15 @@ public class TixTimeServer {
 		}
 	}
 
-	public void stop() {
+	private void stopUdpServer() {
+		logger.info("Shutting down UDP server");
 		if (udpWorkerGroup != null) {
-			logger.info("Shutting down");
 			udpWorkerGroup.shutdownGracefully();
 			for (int i = 0; i < workerThreadsQuantity; i++) {
 				try {
-					futures[i].await();
-					if (futures[i] != null && !futures[i].isSuccess()) {
-						logger.error("Channel Future {} did not succeed", futures[i]);
+					udpFutures[i].await();
+					if (udpFutures[i] != null && !udpFutures[i].isSuccess()) {
+						logger.error("Channel Future {} did not succeed", udpFutures[i]);
 						throw new Error("Channel Future did not succeed");
 					}
 				} catch (InterruptedException e) {
@@ -179,6 +179,31 @@ public class TixTimeServer {
 				}
 			}
 		}
+		logger.info("UDP server shutdown");
+	}
+
+	private void stopHttpServer() {
+		logger.info("Shutting down HTTP server");
+		if (httpWorkerGroup != null) {
+			httpWorkerGroup.shutdownGracefully();
+		}
+		if (httpMasterGroup != null) {
+			httpMasterGroup.shutdownGracefully();
+		}
+		try {
+			httpFuture.channel().closeFuture().await();
+		} catch (InterruptedException e) {
+			logger.catching(e);
+			logger.error("error while closing http server", e);
+		}
+		logger.info("HTTP server shutdown");
+	}
+
+	public void stop() {
+		logger.info("Shutting down");
+		stopUdpServer();
+		stopHttpServer();
+		logger.info("Server shutdown");
 	}
 
 	public int getPort() {
