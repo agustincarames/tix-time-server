@@ -1,6 +1,5 @@
 package com.github.tix_measurements.time.server.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tix_measurements.time.core.data.TixDataPacket;
 import com.github.tix_measurements.time.core.data.TixPacket;
 import com.github.tix_measurements.time.core.util.TixCoreUtils;

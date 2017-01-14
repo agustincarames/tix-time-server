@@ -33,6 +33,7 @@ ext {
     log4jVersion = "2.5"
     junitVersion = "4.12"
     mockitoVersion = "1.9.5"
+	apacheHttpComponentsVersion = "4.5.2"
 }
 
 dependencies {
@@ -55,6 +56,7 @@ dependencies {
     // Testing
     testCompile group: 'junit', name: 'junit', version: "${junitVersion}"
     testCompile group: 'org.mockito', name: 'mockito-all', version: "${mockitoVersion}"
+	testCompile group: 'org.apache.httpcomponents', name: 'httpclient', version: "${apacheHttpComponentsVersion}"
 }
 
 jacoco {

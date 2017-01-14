@@ -3,7 +3,8 @@ queue:
   name: server-condenser-test
   host: localhost
 worker-threads-quantity: 16
-port: 4500
+udp-port: 4500
+http-port: 8080
 ---
 environment: test
 ---

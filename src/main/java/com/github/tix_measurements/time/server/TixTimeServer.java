@@ -3,10 +3,12 @@ package com.github.tix_measurements.time.server;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
 import com.github.tix_measurements.time.server.config.ConfigurationManager;
+import com.github.tix_measurements.time.server.handler.TixHttpServerHandler;
 import com.github.tix_measurements.time.server.handler.TixUdpServerHandler;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
@@ -15,14 +17,17 @@ import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.concurrent.Executors;
 
 public class TixTimeServer {
@@ -36,13 +41,20 @@ public class TixTimeServer {
 
 	private final int workerThreadsQuantity;
 
-	private final int port;
+	private final int udpPort;
+
+	private final int httpPort;
 
 	private final ChannelFuture[] futures;
 
-	private final Bootstrap bootstrap;
+	private final Bootstrap udpBootstrap;
 
-	private EventLoopGroup workerGroup = null;
+	private final ServerBootstrap httpBootstrap;
+
+	private EventLoopGroup udpWorkerGroup = null;
+
+	private EventLoopGroup httpMasterGroup = null;
+	private EventLoopGroup httpWorkerGroup = null;
 
 	public static void main(String[] args) throws FileNotFoundException {
 		ConfigurationManager configs = new ConfigurationManager("TIX");
@@ -50,7 +62,8 @@ public class TixTimeServer {
 		TixTimeServer server = new TixTimeServer(configs.getString("queue.host"),
 				configs.getString("queue.name"),
 				configs.getInt("worker-threads-quantity"),
-				configs.getInt("port"));
+				configs.getInt("udp-port"),
+				configs.getInt("http-port"));
 		server.start();
 		System.out.println("Press enter to terminate");
 		try {
@@ -65,58 +78,83 @@ public class TixTimeServer {
 		}
 	}
 
-	public TixTimeServer(String queueHost, String queueName, int workerThreadsQuantity, int port) {
+	public TixTimeServer(String queueHost, String queueName, int workerThreadsQuantity, int udpPort, int httpPort) {
 		this.queueHost = queueHost;
 		this.queueName = queueName;
 		this.workerThreadsQuantity = workerThreadsQuantity;
-		this.port = port;
+		this.udpPort = udpPort;
+		this.httpPort = httpPort;
 		this.futures = new ChannelFuture[this.workerThreadsQuantity];
-		this.bootstrap = new Bootstrap();
+		this.udpBootstrap = new Bootstrap();
+		this.httpBootstrap = new ServerBootstrap();
 	}
 
-	public void start() {
-		logger.info("Starting Server");
-		EventLoopGroup workerGroup;
+	private void startTixServer() throws InterruptedException {
 		Class<? extends Channel> datagramChannelClass;
 		if (Epoll.isAvailable()) {
 			logger.info("epoll available");
-			workerGroup = new EpollEventLoopGroup(workerThreadsQuantity);
+			udpWorkerGroup = new EpollEventLoopGroup(workerThreadsQuantity);
 			datagramChannelClass = EpollDatagramChannel.class;
 		} else {
 			logger.info("epoll unavailable");
 			logger.warn("epoll unavailable performance may be reduced due to single thread scheme.");
-			workerGroup = new NioEventLoopGroup(workerThreadsQuantity, Executors.privilegedThreadFactory());
+			udpWorkerGroup = new NioEventLoopGroup(workerThreadsQuantity, Executors.privilegedThreadFactory());
 			datagramChannelClass = NioDatagramChannel.class;
 		}
 
+		logger.info("Setting up");
+		udpBootstrap.group(udpWorkerGroup)
+				.channel(datagramChannelClass)
+				.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+				.handler(new ChannelInitializer<DatagramChannel>() {
+					@Override
+					protected void initChannel(DatagramChannel ch)
+							throws Exception {
+						ConnectionFactory connectionFactory = new ConnectionFactory();
+						connectionFactory.setHost(queueHost);
+						Connection queueConnection = connectionFactory.newConnection();
+						logger.info("Connection with queue server established.");
+						com.rabbitmq.client.Channel queueChannel = queueConnection.createChannel();
+						queueChannel.queueDeclare(queueName, true, false, false, null); //Create or attach to the queue queueName, that is durable, non-exclusive and non auto-deletable1
+						logger.info("Queue connected successfully");
+						ch.pipeline().addLast(new TixMessageDecoder());
+						ch.pipeline().addLast(new TixUdpServerHandler(queueConnection, queueChannel, queueName));
+						ch.pipeline().addLast(new TixMessageEncoder());
+					}
+				});
+		if (Epoll.isAvailable()) {
+			udpBootstrap.option(EpollChannelOption.SO_REUSEPORT, true);
+		}
+		logger.info("Binding UDP into port {}", udpPort);
+		for (int i = 0; i < futures.length; i++) {
+			futures[i] = udpBootstrap.bind(udpPort).sync().channel().closeFuture();
+		}
+	}
+
+	private void startHttpServer() throws InterruptedException {
+		httpMasterGroup = new NioEventLoopGroup(1);
+		httpWorkerGroup = new NioEventLoopGroup();
+		httpBootstrap
+				.group(httpMasterGroup, httpWorkerGroup)
+				.channel(NioServerSocketChannel.class)
+				.option(ChannelOption.SO_BACKLOG, 128)
+				.childOption(ChannelOption.SO_KEEPALIVE, true)
+				.childHandler(new ChannelInitializer<SocketChannel>() {
+					@Override
+					protected void initChannel(SocketChannel ch) throws Exception {
+						ch.pipeline().addLast(new HttpServerCodec());
+						ch.pipeline().addLast(new HttpObjectAggregator(512 * 1024));
+						ch.pipeline().addLast(new TixHttpServerHandler());
+					}
+				});
+		httpBootstrap.bind(httpPort).sync();
+	}
+
+	public void start() {
+		logger.info("Starting Server");
 		try {
-			logger.info("Setting up");
-			bootstrap.group(workerGroup)
-					.channel(datagramChannelClass)
-					.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-					.handler(new ChannelInitializer<DatagramChannel>() {
-						@Override
-						protected void initChannel(DatagramChannel ch)
-								throws Exception {
-							ConnectionFactory connectionFactory = new ConnectionFactory();
-							connectionFactory.setHost(queueHost);
-							Connection queueConnection = connectionFactory.newConnection();
-							logger.info("Connection with queue server established.");
-							com.rabbitmq.client.Channel queueChannel = queueConnection.createChannel();
-							queueChannel.queueDeclare(queueName, true, false, false, null); //Create or attach to the queue queueName, that is durable, non-exclusive and non auto-deletable1
-							logger.info("Queue connected successfully");
-							ch.pipeline().addLast(new TixMessageDecoder());
-							ch.pipeline().addLast(new TixUdpServerHandler(queueConnection, queueChannel, queueName));
-							ch.pipeline().addLast(new TixMessageEncoder());
-						}
-					});
-			if (Epoll.isAvailable()) {
-				bootstrap.option(EpollChannelOption.SO_REUSEPORT, true);
-			}
-			logger.info("Binding into port {}", port);
-			for (int i = 0; i < futures.length; i++) {
-				futures[i] = bootstrap.bind(port).sync().channel().closeFuture();
-			}
+			startTixServer();
+			startHttpServer();
 		} catch (InterruptedException e) {
 			logger.fatal("Interrupted", e);
 			logger.catching(e);
@@ -125,7 +163,9 @@ public class TixTimeServer {
 	}
 
 	public void stop() {
-		if (workerGroup != null) {
+		if (udpWorkerGroup != null) {
+			logger.info("Shutting down");
+			udpWorkerGroup.shutdownGracefully();
 			for (int i = 0; i < workerThreadsQuantity; i++) {
 				try {
 					futures[i].await();
@@ -138,12 +178,10 @@ public class TixTimeServer {
 					logger.catching(e);
 				}
 			}
-			logger.info("Shutting down");
-			workerGroup.shutdownGracefully();
 		}
 	}
 
 	public int getPort() {
-		return this.port;
+		return this.udpPort;
 	}
 }
