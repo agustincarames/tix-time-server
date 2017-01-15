@@ -1,6 +1,7 @@
 package com.github.tix_measurements.time.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.*;
@@ -52,8 +53,9 @@ public class TixHttpServerHandler extends ChannelInboundHandlerAdapter {
 				response = new DefaultFullHttpResponse(
 						HttpVersion.HTTP_1_1,
 						HttpResponseStatus.METHOD_NOT_ALLOWED);
+				logger.info("sending 405");
 			}
-			ctx.writeAndFlush(response);
+			ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
 		} else {
 			super.channelRead(ctx, msg);
 		}

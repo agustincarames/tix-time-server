@@ -10,6 +10,7 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -68,7 +69,6 @@ public class ConfigurationManager {
 		for (int i = 0; i < levels.length; i++) {
 			levels[i] = levels[i].replace("[", "--").replace("]", "--");
 			levels[i] = CaseFormat.LOWER_HYPHEN.to(CaseFormat.UPPER_UNDERSCORE, levels[i]);
-//			levels[i] = levels[i].toUpperCase();
 //			levels[i] = levels[i].replace('-', '_');
 		}
 		StringBuilder sb = new StringBuilder(envarPrefix);
@@ -87,11 +87,11 @@ public class ConfigurationManager {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private void loadFileConfigs() throws FileNotFoundException {
 		ClassLoader classLoader = this.getClass().getClassLoader();
-		File configFile = new File(classLoader.getResource("application.yml").getFile());
 		Yaml yaml = new Yaml();
-		Iterable<Object> configs = yaml.loadAll(new FileInputStream(configFile));
+		Iterable<Object> configs = yaml.loadAll(classLoader.getResourceAsStream("application.yml"));
 		for (Object config: configs) {
 			if (!(config instanceof Map)) {
 				throw new IllegalArgumentException("Unsupported configuration type. " +
@@ -134,6 +134,7 @@ public class ConfigurationManager {
 		return environmentVariables.get(toEnVarPath(path));
 	}
 
+	@SuppressWarnings("unchecked")
 	private Object fetchInConfigFile(String path) {
 		String[] splitPath = path.split("\\.");
 		Object config = this.environments.get(environment);

@@ -6,6 +6,7 @@ import com.github.tix_measurements.time.core.util.TixCoreUtils;
 import com.github.tix_measurements.time.server.util.jackson.TixPacketSerDe;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
@@ -54,7 +55,7 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 		}
 		response.setReceptionTimestamp(receptionTimestamp);
 		response.setSentTimestamp(TixCoreUtils.NANOS_OF_DAY.get());
-		ctx.pipeline().writeAndFlush(response);
+		ctx.pipeline().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
 		logger.exit();
 	}
 	

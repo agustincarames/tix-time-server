@@ -1,5 +1,6 @@
 package com.github.tix_measurements.time.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
 import com.github.tix_measurements.time.server.config.ConfigurationManager;
@@ -22,6 +23,7 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -56,7 +58,7 @@ public class TixTimeServer {
 	private EventLoopGroup httpMasterGroup = null;
 	private EventLoopGroup httpWorkerGroup = null;
 
-	public static void main(String[] args) throws FileNotFoundException {
+	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		ConfigurationManager configs = new ConfigurationManager("TIX");
 		configs.loadConfigs();
 		TixTimeServer server = new TixTimeServer(configs.getString("queue.host"),
@@ -76,6 +78,8 @@ public class TixTimeServer {
 		} finally {
 			server.stop();
 		}
+		// TODO: Fix this, for some reason the server is not terminating autonomously. Making it exit.
+		System.exit(1);
 	}
 
 	public TixTimeServer(String queueHost, String queueName, int workerThreadsQuantity, int udpPort, int httpPort) {
@@ -147,7 +151,7 @@ public class TixTimeServer {
 						ch.pipeline().addLast(new TixHttpServerHandler());
 					}
 				});
-		httpFuture = httpBootstrap.bind(httpPort).sync();
+		httpFuture = httpBootstrap.bind(httpPort).sync().channel().closeFuture();
 	}
 
 	public void start() {
@@ -162,20 +166,30 @@ public class TixTimeServer {
 		}
 	}
 
+	private void shutdownGroup(EventLoopGroup group) {
+		if (group != null) {
+			Future f = group.shutdownGracefully().awaitUninterruptibly();
+			if (!f.isSuccess()) {
+				logger.warn("Could not shutdown group");
+				throw new Error("Could not shutdown group");
+			}
+		}
+	}
+
 	private void stopUdpServer() {
 		logger.info("Shutting down UDP server");
 		if (udpWorkerGroup != null) {
-			udpWorkerGroup.shutdownGracefully();
+			try {
+				shutdownGroup(udpWorkerGroup);
+			} catch (Error e) {
+				logger.error("Could not shutdown UDP Server");
+				throw new Error("Could not shutdown UDP Server", e);
+			}
 			for (int i = 0; i < workerThreadsQuantity; i++) {
-				try {
-					udpFutures[i].await();
-					if (udpFutures[i] != null && !udpFutures[i].isSuccess()) {
-						logger.error("Channel Future {} did not succeed", udpFutures[i]);
-						throw new Error("Channel Future did not succeed");
-					}
-				} catch (InterruptedException e) {
-					logger.error("ChannelFuture error");
-					logger.catching(e);
+				udpFutures[i].awaitUninterruptibly();
+				if (!udpFutures[i].isSuccess()) {
+					logger.error("Channel Future {} did not succeed", udpFutures[i]);
+					throw new Error("Channel Future did not succeed");
 				}
 			}
 		}
@@ -184,17 +198,19 @@ public class TixTimeServer {
 
 	private void stopHttpServer() {
 		logger.info("Shutting down HTTP server");
-		if (httpWorkerGroup != null) {
-			httpWorkerGroup.shutdownGracefully();
-		}
-		if (httpMasterGroup != null) {
-			httpMasterGroup.shutdownGracefully();
-		}
 		try {
-			httpFuture.channel().closeFuture().await();
-		} catch (InterruptedException e) {
-			logger.catching(e);
-			logger.error("error while closing http server", e);
+			shutdownGroup(httpWorkerGroup);
+			shutdownGroup(httpMasterGroup);
+		} catch (Error e) {
+			logger.error("Could not shutdown HTTP Server");
+			throw new Error("Could not shutdown HTTP Server", e);
+		}
+		if (httpFuture != null) {
+			httpFuture.awaitUninterruptibly();
+			if (!httpFuture.isSuccess()) {
+				logger.error("Channel Future {} did not succeed", httpFuture);
+				throw new Error("Channel Future did not succeed");
+			}
 		}
 		logger.info("HTTP server shutdown");
 	}
@@ -204,6 +220,7 @@ public class TixTimeServer {
 		stopUdpServer();
 		stopHttpServer();
 		logger.info("Server shutdown");
+
 	}
 
 	public int getPort() {
