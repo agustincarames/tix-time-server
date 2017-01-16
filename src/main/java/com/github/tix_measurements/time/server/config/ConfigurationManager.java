@@ -39,7 +39,7 @@ public class ConfigurationManager {
 	}
 
 	public ConfigurationManager(String envarPrefix, String environment) {
-		logger.entry(envarPrefix);
+		logger.entry(envarPrefix, environment);
 		try {
 			assertThat(envarPrefix).isNotNull().isNotEmpty();
 		} catch (AssertionError ae) {

@@ -72,9 +72,9 @@ public class TixTimeServer {
 			while(System.in.available() == 0) {
 				Thread.sleep(10);
 			}
-		} catch (IOException | InterruptedException e) {
-			server.logger.catching(e);
-			server.logger.fatal("Unexpected exception", e);
+		} catch (Throwable t) {
+			server.logger.catching(t);
+			server.logger.fatal("Unexpected exception", t);
 		} finally {
 			server.stop();
 		}
@@ -83,6 +83,7 @@ public class TixTimeServer {
 	}
 
 	public TixTimeServer(String queueHost, String queueName, int workerThreadsQuantity, int udpPort, int httpPort) {
+		logger.entry(queueHost, queueName, workerThreadsQuantity, udpPort, httpPort);
 		this.queueHost = queueHost;
 		this.queueName = queueName;
 		this.workerThreadsQuantity = workerThreadsQuantity;
@@ -91,6 +92,7 @@ public class TixTimeServer {
 		this.udpFutures = new ChannelFuture[this.workerThreadsQuantity];
 		this.udpBootstrap = new Bootstrap();
 		this.httpBootstrap = new ServerBootstrap();
+		logger.exit();
 	}
 
 	private void startTixServer() throws InterruptedException {
