@@ -4,6 +4,7 @@ jdk:
 
 sudo: required
 services:
+  - docker
   - rabbitmq
 
 scrip:
