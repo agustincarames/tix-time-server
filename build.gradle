@@ -79,3 +79,14 @@ test {
         classDumpFile = file("$buildDir/jacoco/classpathdumps")
     }
 }
+
+task fatJar(type: Jar) {
+	manifest {
+		attributes 'Implementation-Title': 'TixTimeServer',
+				'Implementation-Version': version,
+				'Main-Class': 'com.github.tix_measurements.time.server.TixTimeServer'
+	}
+	baseName = project.name + '-all'
+	from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+	with jar
+}
