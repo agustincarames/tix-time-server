@@ -1,5 +1,5 @@
 group 'ar.edu.itba.it.tix'
-version '0.1.0-SNAPSHOT'
+version '0.1.1-SNAPSHOT'
 
 buildscript {
     repositories {
@@ -21,7 +21,7 @@ repositories {
 
 ext {
 	snakeyamlVersion = "1.17"
-    tixTimeCoreVersion = "2.1.1"
+    tixTimeCoreVersion = "2.2.1"
     amqpClientVersion = "3.6.2"
     nettyVersion = "4.0.36.Final"
     jacksonVersion = "2.8.3"
