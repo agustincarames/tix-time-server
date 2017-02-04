@@ -46,7 +46,8 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 		if (msg instanceof TixDataPacket) {
 			TixDataPacket dataIncoming = (TixDataPacket) incoming;
 			response = new TixDataPacket(dataIncoming.getTo(), dataIncoming.getFrom(), dataIncoming.getInitialTimestamp(),
-					dataIncoming.getPublicKey(), dataIncoming.getMessage(), dataIncoming.getSignature());
+					dataIncoming.getUserId(), dataIncoming.getInstallationId(),dataIncoming.getPublicKey(),
+					dataIncoming.getMessage(), dataIncoming.getSignature());
 			byte[] bytes = serde.serialize(dataIncoming);
 			this.queueChannel.basicPublish("", queueName, null, bytes);
 			logger.debug("Data sent to queue: " + new String(bytes));
