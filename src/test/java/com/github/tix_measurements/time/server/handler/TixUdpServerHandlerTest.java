@@ -35,6 +35,8 @@ public class TixUdpServerHandlerTest {
 	private Connection queueConnection;
 	private Channel queueChannel;
 	private String queueName;
+	private long userId;
+	private long installationId;
 
 	@Before
 	public void setUp() throws Exception {
@@ -51,6 +53,8 @@ public class TixUdpServerHandlerTest {
 		from = new InetSocketAddress(InetAddress.getLocalHost(), 4500);
 		to = new InetSocketAddress(InetAddress.getLocalHost(), 4501);
 		random = new Random();
+		userId = 1L;
+		installationId = 1L;
 	}
 
 	private <T extends TixPacket> T passThroughChannel(T message) throws InterruptedException {
@@ -91,8 +95,8 @@ public class TixUdpServerHandlerTest {
 	public void testTixDataPackage() throws IOException, InterruptedException {
 		long initialTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
 		byte[] message = TestDataUtils.INSTANCE.generateMessage();
-		TixDataPacket dataPackage = new TixDataPacket(from, to, initialTimestamp, TestDataUtils.INSTANCE.getPublicKey(),
-				message, TestDataUtils.INSTANCE.getSignature(message));
+		TixDataPacket dataPackage = new TixDataPacket(from, to, initialTimestamp, userId, installationId,
+				TestDataUtils.INSTANCE.getPublicKey(), message, TestDataUtils.INSTANCE.getSignature(message));
 		TixDataPacket returnedDataPackage = passThroughChannel(dataPackage);
 		long finalTimestamp = TixCoreUtils.NANOS_OF_DAY.get();
 		assertReturnedPackageTimestamps(dataPackage, returnedDataPackage, finalTimestamp);

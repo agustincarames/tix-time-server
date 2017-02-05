@@ -39,6 +39,8 @@ public class TixTimeServerTest {
 	private int serverWorkerThreads;
 	private int udpPort;
 	private int httpPort;
+	private long userId;
+	private long installationId;
 
 	private TixTimeTestClient client;
 
@@ -50,6 +52,8 @@ public class TixTimeServerTest {
 		queueName = "test-queue-" + RandomStringUtils.randomAlphanumeric(4);
 		serverWorkerThreads = Runtime.getRuntime().availableProcessors();
 		udpPort = RandomUtils.nextInt(1025, (Short.MAX_VALUE * 2) - 1);
+		userId = 1L;
+		installationId = 1L;
 		do {
 			httpPort = RandomUtils.nextInt(1025, (Short.MAX_VALUE * 2) - 1);
 		} while(httpPort == udpPort);
@@ -108,7 +112,7 @@ public class TixTimeServerTest {
 	public void testSendDataPacket() throws InterruptedException, IOException, TimeoutException {
 		byte[] message = TestDataUtils.INSTANCE.generateMessage();
 		TixPacket dataPacket = new TixDataPacket(this.client.getClientAddress(), this.client.getServerAddress(),
-				TixCoreUtils.NANOS_OF_DAY.get(), TestDataUtils.INSTANCE.getPublicKey(), message,
+				TixCoreUtils.NANOS_OF_DAY.get(), userId, installationId, TestDataUtils.INSTANCE.getPublicKey(), message,
 				TestDataUtils.INSTANCE.getSignature(message));
 		testPacket(dataPacket);
 		Channel channel = getChannel();
