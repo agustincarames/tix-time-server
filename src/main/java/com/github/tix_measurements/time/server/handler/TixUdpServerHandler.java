@@ -56,7 +56,7 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 		}
 		response.setReceptionTimestamp(receptionTimestamp);
 		response.setSentTimestamp(TixCoreUtils.NANOS_OF_DAY.get());
-		ctx.pipeline().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+		ctx.pipeline().writeAndFlush(response).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
 		logger.exit();
 	}
 	

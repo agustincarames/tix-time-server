@@ -1,5 +1,5 @@
 group 'ar.edu.itba.it.tix'
-version '0.1.1-SNAPSHOT'
+version '0.1.2-SNAPSHOT'
 
 buildscript {
     repositories {
