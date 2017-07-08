@@ -1,8 +1,10 @@
 package com.github.tix_measurements.time.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tix_measurements.time.core.data.TixDataPacket;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
+import com.github.tix_measurements.time.core.util.TixCoreUtils;
 import com.github.tix_measurements.time.server.config.ConfigurationManager;
 import com.github.tix_measurements.time.server.handler.TixHttpServerHandler;
 import com.github.tix_measurements.time.server.handler.TixUdpServerHandler;
@@ -33,6 +35,7 @@ import java.util.concurrent.Executors;
 
 public class TixTimeServer {
 
+	private static final int BUFFER_ALLOCATION_SIZE = 4096 + 1024; // XXX: https://stackoverflow.com/questions/13086564/netty-increase-channelbuffer-size?answertab=votes#tab-top
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 
@@ -111,6 +114,8 @@ public class TixTimeServer {
 		logger.info("Setting up");
 		udpBootstrap.group(udpWorkerGroup)
 				.channel(datagramChannelClass)
+				.option(ChannelOption.SO_RCVBUF, BUFFER_ALLOCATION_SIZE)
+				.option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(BUFFER_ALLOCATION_SIZE))
 				.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
 				.handler(new ChannelInitializer<DatagramChannel>() {
 					@Override
