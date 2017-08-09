@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -53,7 +54,7 @@ public class ConfigurationManager {
 
 	private String fetchEnvironment() {
 		String environment = getEnVar(ENVIRONMENT_KEY_WORD);
-		if (environment == null || environment.trim() == "") {
+		if (environment == null || Objects.equals(environment.trim(), "")) {
 			return DEFAULT_ENVIRONMENT_NAME;
 		}
 		return environment;

@@ -27,7 +27,7 @@
         </RollingFile>
     </Appenders>
     <Loggers>
-        <Logger name="ar.edu.itba.it.tix_time_server.log4j2" level="debug" additivity="false">
+        <Logger name="com.github.tix_measurements.time.server" level="debug" additivity="false">
             <appender-ref ref="trace-log" level="info"/>
             <appender-ref ref="error-log" level="error"/>
             <appender-ref ref="console-log" level="info"/>

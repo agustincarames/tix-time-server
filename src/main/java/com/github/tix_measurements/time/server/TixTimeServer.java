@@ -1,10 +1,7 @@
 package com.github.tix_measurements.time.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tix_measurements.time.core.data.TixDataPacket;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
-import com.github.tix_measurements.time.core.util.TixCoreUtils;
 import com.github.tix_measurements.time.server.config.ConfigurationManager;
 import com.github.tix_measurements.time.server.handler.TixHttpServerHandler;
 import com.github.tix_measurements.time.server.handler.TixUdpServerHandler;
@@ -26,8 +23,12 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.util.concurrent.Future;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -61,9 +62,19 @@ public class TixTimeServer {
 	private EventLoopGroup httpMasterGroup = null;
 	private EventLoopGroup httpWorkerGroup = null;
 
+	private static void setLogLevel(String logLevel) {
+		Level level = Level.getLevel(logLevel);
+		LoggerContext ctx = LoggerContext.getContext(false);
+		Configuration config = ctx.getConfiguration();
+		LoggerConfig loggerConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+		loggerConfig.setLevel(level);
+		ctx.updateLoggers();
+	}
+
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		ConfigurationManager configs = new ConfigurationManager("TIX");
 		configs.loadConfigs();
+		setLogLevel(configs.getString("log-level"));
 		TixTimeServer server = new TixTimeServer(configs.getString("queue.host"),
 				configs.getString("queue.name"),
 				configs.getInt("worker-threads-quantity"),
