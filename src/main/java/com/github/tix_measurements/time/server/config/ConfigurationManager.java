@@ -138,10 +138,9 @@ public class ConfigurationManager {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Object fetchInConfigFile(String path) {
-		logger.entry(path);
+	private Object fetchConfigInEnvironment(String path, Map<String, Object> environment) {
 		String[] splitPath = path.split("\\.");
-		Object config = this.environments.get(environment);
+		Object config = environment;
 		for (String level: splitPath) {
 			if (level.matches("^.*\\[\\d+\\]$")) {
 				int indexStart = level.lastIndexOf('[');
@@ -159,6 +158,15 @@ public class ConfigurationManager {
 					return null;
 				}
 			}
+		}
+		return config;
+	}
+
+	private Object fetchInConfigFile(String path) {
+		logger.entry(path);
+		Object config = fetchConfigInEnvironment(path, this.environments.get(environment));
+		if (config == null) {
+			config = fetchConfigInEnvironment(path, this.environments.get(DEFAULT_ENVIRONMENT_NAME));
 		}
 		return logger.exit(config);
 	}
