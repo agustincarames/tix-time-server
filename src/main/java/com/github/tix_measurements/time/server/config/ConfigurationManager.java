@@ -139,6 +139,7 @@ public class ConfigurationManager {
 
 	@SuppressWarnings("unchecked")
 	private Object fetchInConfigFile(String path) {
+		logger.entry(path);
 		String[] splitPath = path.split("\\.");
 		Object config = this.environments.get(environment);
 		for (String level: splitPath) {
@@ -154,17 +155,24 @@ public class ConfigurationManager {
 				config = cs.get(index);
 			} else {
 				config = ((Map<String, Object>)config).get(level);
+				if (config == null) {
+					return null;
+				}
 			}
 		}
-		return config;
+		return logger.exit(config);
 	}
 
 	public Object get(String path) {
+		logger.entry(path);
 		Object config = fetchInEnvironmentVariables(path);
 		if (config == null) {
 			config = fetchInConfigFile(path);
 		}
-		return config;
+		if (config == null) {
+			logger.warn(format("Config for path %s is null or it does not exists.", path));
+		}
+		return logger.exit(config);
 	}
 
 	public byte getByte(String path) {
