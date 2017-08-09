@@ -86,6 +86,8 @@ public class ConfigurationManager {
 		if (!environments.containsKey(environment)) {
 			throw new IllegalStateException(format("Provided environment %s does not exists.", environment));
 		}
+		logger.info(format("\nConfiguration Environment Name: %s \nConfiguration File Variables: %s \nSystem Environment Variables: %s \n",
+				this.environment, this.environments.get(this.environment), this.environmentVariables));
 	}
 
 	@SuppressWarnings("unchecked")
