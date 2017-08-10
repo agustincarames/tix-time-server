@@ -66,21 +66,20 @@ public class TixTimeServer {
 		Level level = Level.getLevel(logLevel);
 		LoggerContext ctx = LoggerContext.getContext(false);
 		Configuration config = ctx.getConfiguration();
-		LoggerConfig loggerConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
-		loggerConfig.setLevel(level);
+		config.getLoggers().forEach((s, loggerConfig) -> loggerConfig.setLevel(level));
 		ctx.updateLoggers();
 	}
 
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		ConfigurationManager configs = new ConfigurationManager("TIX");
 		configs.loadConfigs();
-		setLogLevel(configs.getString("log-level"));
 		TixTimeServer server = new TixTimeServer(configs.getString("queue.host"),
 				configs.getString("queue.name"),
 				configs.getInt("worker-threads-quantity"),
 				configs.getInt("udp-port"),
 				configs.getInt("http-port"));
 		server.start();
+		setLogLevel(configs.getString("log-level"));
 		System.out.println("Press enter to terminate");
 		try {
 			while(System.in.available() == 0) {
@@ -106,7 +105,7 @@ public class TixTimeServer {
 		this.udpFutures = new ChannelFuture[this.workerThreadsQuantity];
 		this.udpBootstrap = new Bootstrap();
 		this.httpBootstrap = new ServerBootstrap();
-		logger.exit();
+		logger.exit(this);
 	}
 
 	private void startTixServer() throws InterruptedException {
