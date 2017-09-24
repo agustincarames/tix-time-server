@@ -32,7 +32,11 @@ import org.apache.logging.log4j.core.config.LoggerConfig;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+
+import static java.lang.String.format;
 
 public class TixTimeServer {
 
@@ -47,6 +51,8 @@ public class TixTimeServer {
 	private final String queuePassword;
 
 	private final String queueName;
+
+	private final Connection queueConnection;
 
 	private final int workerThreadsQuantity;
 
@@ -74,35 +80,34 @@ public class TixTimeServer {
 		ctx.updateLoggers();
 	}
 
-	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
-		ConfigurationManager configs = new ConfigurationManager("TIX");
-		configs.loadConfigs();
-		TixTimeServer server = new TixTimeServer(configs.getString("queue.host"),
-				configs.getString("queue.user"),
-				configs.getString("queue.password"),
-				configs.getString("queue.name"),
-				configs.getInt("worker-threads-quantity"),
-				configs.getInt("udp-port"),
-				configs.getInt("http-port"));
-		server.start();
-		setLogLevel(configs.getString("log-level"));
-		System.out.println("Press enter to terminate");
+	public static void main(String[] args) throws FileNotFoundException, InterruptedException, ConnectException {
+		Logger mainLogger = LogManager.getLogger();
+		TixTimeServer server = null;
 		try {
+			ConfigurationManager configs = new ConfigurationManager("TIX");
+			configs.loadConfigs();
+			server = new TixTimeServer(configs.getString("queue.host"),
+					configs.getString("queue.user"),
+					configs.getString("queue.password"),
+					configs.getString("queue.name"),
+					configs.getInt("worker-threads-quantity"),
+					configs.getInt("udp-port"),
+					configs.getInt("http-port"));
+			server.start();
+			setLogLevel(configs.getString("log-level"));
+			System.out.println("Press enter to terminate");
 			while(System.in.available() == 0) {
 				Thread.sleep(10);
 			}
-		} catch (Throwable t) {
-			server.logger.catching(t);
-			server.logger.fatal("Unexpected exception", t);
-		} finally {
 			server.stop();
+		} catch (Throwable t) {
+			mainLogger.catching(t);
+			mainLogger.fatal("Unexpected exception", t);
 		}
-		// TODO: Fix this, for some reason the server is not terminating autonomously. Making it exit.
-		System.exit(1);
 	}
 
 	public TixTimeServer(String queueHost, String queueUser, String queuePassword,
-	                     String queueName, int workerThreadsQuantity, int udpPort, int httpPort) {
+	                     String queueName, int workerThreadsQuantity, int udpPort, int httpPort) throws ConnectException, InterruptedException {
 		logger.entry(queueHost, queueUser, queuePassword, queueName, workerThreadsQuantity, udpPort, httpPort);
 		this.queueHost = queueHost;
 		this.queueUser = queueUser;
@@ -114,7 +119,34 @@ public class TixTimeServer {
 		this.udpFutures = new ChannelFuture[this.workerThreadsQuantity];
 		this.udpBootstrap = new Bootstrap();
 		this.httpBootstrap = new ServerBootstrap();
+		this.queueConnection = getQueueConnection();
 		logger.exit(this);
+	}
+
+	private Connection getQueueConnection() throws InterruptedException, ConnectException {
+		ConnectionFactory connectionFactory = new ConnectionFactory();
+		connectionFactory.setHost(queueHost);
+		connectionFactory.setUsername(queueUser);
+		connectionFactory.setPassword(queuePassword);
+		connectionFactory.setAutomaticRecoveryEnabled(true);
+		Connection queueConnection = null;
+		int retries = 5;
+		long backoff = 20000L;
+		while (queueConnection == null && retries > 0) {
+			try {
+				queueConnection = connectionFactory.newConnection();
+			} catch (IOException | TimeoutException e) {
+				logger.warn("Error while trying to connect with the queue.", e);
+				logger.info(format("Retrying in %d seconds. %d retries left.", backoff / 1000, retries));
+				Thread.sleep(backoff);
+				retries--;
+				backoff *= 1.5;
+			}
+		}
+		if (retries == 0) {
+			throw new ConnectException("Could not connect to the RabbitMQ Broker!");
+		}
+		return queueConnection;
 	}
 
 	private void startTixServer() throws InterruptedException {
@@ -140,17 +172,12 @@ public class TixTimeServer {
 					@Override
 					protected void initChannel(DatagramChannel ch)
 							throws Exception {
-						ConnectionFactory connectionFactory = new ConnectionFactory();
-						connectionFactory.setHost(queueHost);
-						connectionFactory.setUsername(queueUser);
-						connectionFactory.setPassword(queuePassword);
-						Connection queueConnection = connectionFactory.newConnection();
 						logger.info("Connection with queue server established.");
 						com.rabbitmq.client.Channel queueChannel = queueConnection.createChannel();
 						queueChannel.queueDeclare(queueName, true, false, false, null); //Create or attach to the queue queueName, that is durable, non-exclusive and non auto-deletable1
 						logger.info("Queue connected successfully");
 						ch.pipeline().addLast(new TixMessageDecoder());
-						ch.pipeline().addLast(new TixUdpServerHandler(queueConnection, queueChannel, queueName));
+						ch.pipeline().addLast(new TixUdpServerHandler(queueChannel, queueName));
 						ch.pipeline().addLast(new TixMessageEncoder());
 					}
 				});
@@ -247,6 +274,13 @@ public class TixTimeServer {
 		logger.info("Shutting down");
 		stopUdpServer();
 		stopHttpServer();
+		try {
+			logger.info("Closing queue connection.");
+			queueConnection.close();
+		} catch (IOException e) {
+			logger.catching(e);
+			logger.warn("Error while closing queue connection.", e);
+		}
 		logger.info("Server shutdown");
 
 	}

@@ -18,13 +18,11 @@ import java.util.concurrent.TimeoutException;
 public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
-	private final Connection queueConnection;
 	private final Channel queueChannel;
 	private final String queueName;
 	private final TixPacketSerDe serde;
 
-	public TixUdpServerHandler(Connection queueConnection, Channel queueChannel, String queueName) throws IOException, TimeoutException {
-		this.queueConnection = queueConnection;
+	public TixUdpServerHandler(Channel queueChannel, String queueName) throws IOException, TimeoutException {
 		this.queueChannel = queueChannel;
 		this.queueName = queueName;
 		this.serde = new TixPacketSerDe();
@@ -58,6 +56,17 @@ public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
 		response.setSentTimestamp(TixCoreUtils.NANOS_OF_DAY.get());
 		ctx.pipeline().writeAndFlush(response).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
 		logger.exit();
+	}
+
+	@Override
+	public void channelInactive(ChannelHandlerContext ctx) {
+		logger.entry(ctx);
+		logger.info("Channel reached end of lifetime. Cleaning-up.");
+		try {
+			this.queueChannel.close();
+		} catch (IOException | TimeoutException e) {
+			logger.error("Exception caught while closing queue channel", e);
+		}
 	}
 	
 	@Override
