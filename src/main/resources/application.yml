@@ -1,5 +1,7 @@
 environment: default
 queue:
+  user: guest
+  password: guest
   name: server-condenser-test
   host: localhost
 worker-threads-quantity: 16

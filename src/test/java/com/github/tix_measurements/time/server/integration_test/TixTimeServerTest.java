@@ -35,6 +35,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TixTimeServerTest {
 
 	private String queueHost;
+	private String queueUser;
+	private String queuePassword;
 	private String queueName;
 	private int serverWorkerThreads;
 	private int udpPort;
@@ -49,6 +51,8 @@ public class TixTimeServerTest {
 	@Before
 	public void setup() throws IOException, TimeoutException {
 		queueHost = "localhost";
+		queueUser = "guest";
+		queuePassword = "guest";
 		queueName = "test-queue-" + RandomStringUtils.randomAlphanumeric(4);
 		serverWorkerThreads = Runtime.getRuntime().availableProcessors();
 		udpPort = RandomUtils.nextInt(1025, (Short.MAX_VALUE * 2) - 1);
@@ -57,7 +61,8 @@ public class TixTimeServerTest {
 		do {
 			httpPort = RandomUtils.nextInt(1025, (Short.MAX_VALUE * 2) - 1);
 		} while(httpPort == udpPort);
-		this.server = new TixTimeServer(queueHost, queueName, serverWorkerThreads, udpPort, httpPort);
+		this.server = new TixTimeServer(queueHost, queueUser, queuePassword, queueName,
+				serverWorkerThreads, udpPort, httpPort);
 		this.client = new TixTimeTestClient(udpPort);
 	}
 

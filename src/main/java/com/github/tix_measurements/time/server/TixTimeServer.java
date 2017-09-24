@@ -42,6 +42,10 @@ public class TixTimeServer {
 
 	private final String queueHost;
 
+	private final String queueUser;
+
+	private final String queuePassword;
+
 	private final String queueName;
 
 	private final int workerThreadsQuantity;
@@ -74,6 +78,8 @@ public class TixTimeServer {
 		ConfigurationManager configs = new ConfigurationManager("TIX");
 		configs.loadConfigs();
 		TixTimeServer server = new TixTimeServer(configs.getString("queue.host"),
+				configs.getString("queue.user"),
+				configs.getString("queue.password"),
 				configs.getString("queue.name"),
 				configs.getInt("worker-threads-quantity"),
 				configs.getInt("udp-port"),
@@ -95,9 +101,12 @@ public class TixTimeServer {
 		System.exit(1);
 	}
 
-	public TixTimeServer(String queueHost, String queueName, int workerThreadsQuantity, int udpPort, int httpPort) {
-		logger.entry(queueHost, queueName, workerThreadsQuantity, udpPort, httpPort);
+	public TixTimeServer(String queueHost, String queueUser, String queuePassword,
+	                     String queueName, int workerThreadsQuantity, int udpPort, int httpPort) {
+		logger.entry(queueHost, queueUser, queuePassword, queueName, workerThreadsQuantity, udpPort, httpPort);
 		this.queueHost = queueHost;
+		this.queueUser = queueUser;
+		this.queuePassword = queuePassword;
 		this.queueName = queueName;
 		this.workerThreadsQuantity = workerThreadsQuantity;
 		this.udpPort = udpPort;
@@ -133,6 +142,8 @@ public class TixTimeServer {
 							throws Exception {
 						ConnectionFactory connectionFactory = new ConnectionFactory();
 						connectionFactory.setHost(queueHost);
+						connectionFactory.setUsername(queueUser);
+						connectionFactory.setPassword(queuePassword);
 						Connection queueConnection = connectionFactory.newConnection();
 						logger.info("Connection with queue server established.");
 						com.rabbitmq.client.Channel queueChannel = queueConnection.createChannel();
