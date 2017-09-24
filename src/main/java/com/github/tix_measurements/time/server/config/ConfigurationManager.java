@@ -187,27 +187,27 @@ public class ConfigurationManager {
 	}
 
 	public byte getByte(String path) {
-		return Byte.valueOf(get(path).toString());
+		return Byte.valueOf(getString(path));
 	}
 
 	public short getShort(String path) {
-		return Short.valueOf(get(path).toString());
+		return Short.valueOf(getString(path));
 	}
 
 	public int getInt(String path) {
-		return Integer.valueOf(get(path).toString());
+		return Integer.valueOf(getString(path));
 	}
 
 	public long getLong(String path) {
-		return Long.valueOf(get(path).toString());
+		return Long.valueOf(getString(path));
 	}
 
 	public boolean getBoolean(String path) {
-		return Boolean.valueOf(get(path).toString());
+		return Boolean.valueOf(getString(path));
 	}
 
 	public char getChar(String path) {
-		return get(path).toString().charAt(0);
+		return getString(path).charAt(0);
 	}
 
 	public String getString(String path) {
@@ -215,10 +215,10 @@ public class ConfigurationManager {
 	}
 
 	public float getFloat(String path) {
-		return Float.valueOf(get(path).toString());
+		return Float.valueOf(getString(path));
 	}
 
 	public double getDouble(String path) {
-		return Double.valueOf(get(path).toString());
+		return Double.valueOf(getString(path));
 	}
 }
