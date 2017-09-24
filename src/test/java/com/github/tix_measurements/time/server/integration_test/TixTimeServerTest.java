@@ -49,7 +49,7 @@ public class TixTimeServerTest {
 	private TixTimeServer server;
 
 	@Before
-	public void setup() throws IOException, TimeoutException {
+	public void setup() throws IOException, TimeoutException, InterruptedException {
 		queueHost = "localhost";
 		queueUser = "guest";
 		queuePassword = "guest";

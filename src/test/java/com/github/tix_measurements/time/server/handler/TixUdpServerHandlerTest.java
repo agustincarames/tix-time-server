@@ -32,7 +32,6 @@ public class TixUdpServerHandlerTest {
 	private Random random;
 	private InetSocketAddress from;
 	private InetSocketAddress to;
-	private Connection queueConnection;
 	private Channel queueChannel;
 	private String queueName;
 	private long userId;
@@ -40,7 +39,6 @@ public class TixUdpServerHandlerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		queueConnection = mock(Connection.class);
 		queueChannel = mock(Channel.class);
 		queueName = "mocking-queue";
 		encoderDecoderChannel = new EmbeddedChannel(
@@ -48,7 +46,7 @@ public class TixUdpServerHandlerTest {
 				new TixMessageEncoder());
 		testChannel = new EmbeddedChannel(
 				new TixMessageDecoder(),
-				new TixUdpServerHandler(queueConnection, queueChannel, queueName),
+				new TixUdpServerHandler(queueChannel, queueName),
 				new TixMessageEncoder());
 		from = new InetSocketAddress(InetAddress.getLocalHost(), 4500);
 		to = new InetSocketAddress(InetAddress.getLocalHost(), 4501);
