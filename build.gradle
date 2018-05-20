@@ -21,7 +21,8 @@ repositories {
 
 ext {
 	snakeyamlVersion = "1.17"
-    tixTimeCoreVersion = "2.2.3"
+	jMicroConfigsVersion = "1.0.0"
+	tixTimeCoreVersion = "2.2.3"
     amqpClientVersion = "3.6.2"
     nettyVersion = "4.0.36.Final"
     jacksonVersion = "2.8.3"
@@ -38,6 +39,7 @@ ext {
 
 dependencies {
 	// Core
+	compile group: 'com.github.fnmartinez', name: 'j-micro-configs', version: "${jMicroConfigsVersion}"
     compile group: 'com.github.tix-measurements', name: 'tix-time-core', version: "${tixTimeCoreVersion}"
     compile group: 'com.rabbitmq', name: 'amqp-client', version: "${amqpClientVersion}"
     compile group: 'io.netty', name: 'netty-all', version: "${nettyVersion}"

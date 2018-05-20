@@ -1,8 +1,8 @@
 package com.github.tix_measurements.time.server;
 
+import com.github.fnmartinez.jmicroconfigs.ConfigurationManager;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
-import com.github.tix_measurements.time.server.config.ConfigurationManager;
 import com.github.tix_measurements.time.server.handler.TixHttpServerHandler;
 import com.github.tix_measurements.time.server.handler.TixUdpServerHandler;
 import com.rabbitmq.client.Connection;
@@ -28,9 +28,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.LoggerConfig;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.concurrent.Executors;
@@ -80,7 +78,7 @@ public class TixTimeServer {
 		ctx.updateLoggers();
 	}
 
-	public static void main(String[] args) throws FileNotFoundException, InterruptedException, ConnectException {
+	public static void main(String[] args) {
 		Logger mainLogger = LogManager.getLogger();
 		TixTimeServer server = null;
 		try {
