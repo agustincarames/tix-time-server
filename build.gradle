@@ -61,10 +61,6 @@ dependencies {
 	testCompile group: 'org.apache.httpcomponents', name: 'httpclient', version: "${apacheHttpComponentsVersion}"
 }
 
-jacoco {
-    toolVersion = "0.7.6.201602180812"
-}
-
 jacocoTestReport {
     reports {
         xml.enabled true
@@ -80,12 +76,9 @@ jacocoTestReport {
 	}
 }
 
-test {
-    jacoco {
-        append = false
-        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
-        classDumpFile = file("$buildDir/jacoco/classpathdumps")
-    }
+task getDeps(type: Exec) {
+    configurations.testRuntime.files
+    commandLine 'echo', 'Downloaded all dependencies'
 }
 
 task fatJar(type: Jar) {
@@ -94,7 +87,7 @@ task fatJar(type: Jar) {
 				'Implementation-Version': version,
 				'Main-Class': 'com.github.tix_measurements.time.server.TixTimeServer'
 	}
-	baseName = project.name + '-all'
+	archiveName = project.name + '-all.jar'
 	from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 	with jar
 }
