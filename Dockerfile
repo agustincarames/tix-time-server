@@ -1,26 +1,21 @@
-FROM ubuntu:xenial
-MAINTAINER Facundo Martinez <fnmartinez88@gmail.com>
+FROM gradle:jdk8-alpine
 
-ENV DEBIAN_FRONTEND noninteractive
+# Install app dependencies
+COPY settings.gradle .
+COPY build.gradle .
+RUN gradle getDeps
 
-# Installing basic utils for software language installation and logging
-RUN apt-get update -y \
-	&& apt-get install -y \
-			software-properties-common \
-			curl
+# Build app
+COPY src ./src
+RUN gradle fatJar
 
-# Installing and setting up software and properties specific to the Java Language
-RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
-RUN add-apt-repository ppa:webupd8team/java \
-	&& apt-get update \
-	&& apt-get install -y oracle-java8-installer \
-	&& apt-get install -y oracle-java8-set-default
-
-RUN mkdir -p /root/tix-time-server
-COPY tix-time-server.jar /root/tix-time-server
-COPY run.sh /root/tix-time-server
+# Bundle compiled app into target image
+FROM openjdk:8-jre-alpine
+RUN apk add bash
 WORKDIR /root/tix-time-server
+COPY wait-for-it.sh .
+COPY run.sh .
+COPY --from=0 /home/gradle/build/libs/tix-time-server-all.jar tix-time-server.jar
 
 EXPOSE 4500/udp 8080/tcp
-
-ENTRYPOINT ["./run.sh"]
+CMD ["./run.sh"]
