@@ -1,6 +1,8 @@
 package com.github.tix_measurements.time.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tix_measurements.time.server.health.TixHealthServiceHandler;
+
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.*;
 import org.junit.Before;
@@ -18,7 +20,7 @@ public class TixHttpServerHandlerTest {
 	@Before
 	public void setup() {
 		testChannel = new EmbeddedChannel(
-			new TixHttpServerHandler()
+			new TixHealthServiceHandler()
 		);
 	}
 
@@ -36,7 +38,7 @@ public class TixHttpServerHandlerTest {
 				HttpMethod.GET,
 				"/health"
 		);
-		TixHttpServerHandler.StatusMessage expectedStatus = new TixHttpServerHandler.StatusMessage(true);
+		TixHealthServiceHandler.StatusMessage expectedStatus = new TixHealthServiceHandler.StatusMessage(true);
 		FullHttpResponse response = passThroughChannel(request);
 		assertThat(response.getStatus()).isEqualTo(HttpResponseStatus.OK);
 		ObjectMapper mapper = new ObjectMapper();
@@ -60,7 +62,7 @@ public class TixHttpServerHandlerTest {
 		FullHttpRequest request = new DefaultFullHttpRequest(
 				HttpVersion.HTTP_1_1,
 				HttpMethod.OPTIONS,
-				TixHttpServerHandler.HTTP_PATH);
+				TixHealthServiceHandler.HTTP_PATH);
 		FullHttpResponse response = passThroughChannel(request);
 		assertThat(response.getStatus()).isEqualTo(HttpResponseStatus.METHOD_NOT_ALLOWED);
 	}

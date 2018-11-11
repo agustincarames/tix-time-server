@@ -6,10 +6,10 @@ import com.github.tix_measurements.time.core.data.TixPacketType;
 import com.github.tix_measurements.time.core.decoder.TixMessageDecoder;
 import com.github.tix_measurements.time.core.encoder.TixMessageEncoder;
 import com.github.tix_measurements.time.core.util.TixCoreUtils;
+import com.github.tix_measurements.time.server.data.TixUdpDataServiceHandler;
 import com.github.tix_measurements.time.server.util.jackson.TixPacketSerDe;
 import com.github.tix_measurements.time.server.utils.TestDataUtils;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.socket.DatagramPacket;
 import org.junit.Before;
@@ -46,7 +46,7 @@ public class TixUdpServerHandlerTest {
 				new TixMessageEncoder());
 		testChannel = new EmbeddedChannel(
 				new TixMessageDecoder(),
-				new TixUdpServerHandler(queueChannel, queueName),
+				new TixUdpDataServiceHandler(queueChannel, queueName),
 				new TixMessageEncoder());
 		from = new InetSocketAddress(InetAddress.getLocalHost(), 4500);
 		to = new InetSocketAddress(InetAddress.getLocalHost(), 4501);

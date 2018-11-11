@@ -6,7 +6,7 @@ import com.github.tix_measurements.time.core.data.TixPacket;
 import com.github.tix_measurements.time.core.data.TixPacketType;
 import com.github.tix_measurements.time.core.util.TixCoreUtils;
 import com.github.tix_measurements.time.server.TixTimeServer;
-import com.github.tix_measurements.time.server.handler.TixHttpServerHandler;
+import com.github.tix_measurements.time.server.health.TixHealthServiceHandler;
 import com.github.tix_measurements.time.server.util.jackson.TixPacketSerDe;
 import com.github.tix_measurements.time.server.utils.TestDataUtils;
 import com.rabbitmq.client.*;
@@ -136,13 +136,13 @@ public class TixTimeServerTest {
 	public void testHealthCheck() throws IOException {
 		server.start();
 		HttpClient httpClient = HttpClients.createMinimal();
-		String url = String.format("http://localhost:%d/%s", httpPort, TixHttpServerHandler.HTTP_PATH);
+		String url = String.format("http://localhost:%d/%s", httpPort, TixHealthServiceHandler.HTTP_PATH);
 		HttpGet getRequest = new HttpGet(url);
 		HttpResponse response = httpClient.execute(getRequest);
 		assertThat(response.getStatusLine().getStatusCode()).isEqualTo(HttpStatus.SC_OK);
 		String responseContent = getEntityContent(response.getEntity());
 		ObjectMapper mapper = new ObjectMapper();
-		TixHttpServerHandler.StatusMessage expectedStatus = new TixHttpServerHandler.StatusMessage(true);
+		TixHealthServiceHandler.StatusMessage expectedStatus = new TixHealthServiceHandler.StatusMessage(true);
 		assertThat(responseContent).isEqualTo(mapper.writeValueAsString(expectedStatus));
 		server.stop();
 	}

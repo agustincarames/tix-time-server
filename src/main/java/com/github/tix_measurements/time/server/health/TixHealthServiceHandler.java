@@ -1,4 +1,4 @@
-package com.github.tix_measurements.time.server.handler;
+package com.github.tix_measurements.time.server.health;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.ChannelFutureListener;
@@ -11,12 +11,12 @@ import org.apache.logging.log4j.Logger;
 
 import static io.netty.buffer.Unpooled.copiedBuffer;
 
-public class TixHttpServerHandler extends ChannelInboundHandlerAdapter {
+public class TixHealthServiceHandler extends ChannelInboundHandlerAdapter {
 	public static final String HTTP_PATH = "/health";
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 
-	public TixHttpServerHandler() {
+	public TixHealthServiceHandler() {
 
 	}
 

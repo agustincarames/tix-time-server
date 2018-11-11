@@ -1,11 +1,10 @@
-package com.github.tix_measurements.time.server.handler;
+package com.github.tix_measurements.time.server.data;
 
 import com.github.tix_measurements.time.core.data.TixDataPacket;
 import com.github.tix_measurements.time.core.data.TixPacket;
 import com.github.tix_measurements.time.core.util.TixCoreUtils;
 import com.github.tix_measurements.time.server.util.jackson.TixPacketSerDe;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -15,14 +14,14 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-public class TixUdpServerHandler extends ChannelInboundHandlerAdapter {
+public class TixUdpDataServiceHandler extends ChannelInboundHandlerAdapter {
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 	private final Channel queueChannel;
 	private final String queueName;
 	private final TixPacketSerDe serde;
 
-	public TixUdpServerHandler(Channel queueChannel, String queueName) throws IOException, TimeoutException {
+	public TixUdpDataServiceHandler(Channel queueChannel, String queueName) throws IOException, TimeoutException {
 		this.queueChannel = queueChannel;
 		this.queueName = queueName;
 		this.serde = new TixPacketSerDe();
