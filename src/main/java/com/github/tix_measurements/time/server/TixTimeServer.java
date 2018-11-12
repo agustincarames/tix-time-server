@@ -38,9 +38,9 @@ public class TixTimeServer {
 					configs.getString("queue.user"),
 					configs.getString("queue.password"),
 					configs.getString("queue.name"),
-					configs.getInt("worker-threads-quantity"),
-					configs.getInt("udp-port"),
-					configs.getInt("http-port"));
+					Integer.parseInt(configs.getString("worker-threads-quantity")),
+					Integer.parseInt(configs.getString("udp-port")),
+					Integer.parseInt(configs.getString("http-port")));
 			
 			server.start();
 			setLogLevel(configs.getString("log-level"));
