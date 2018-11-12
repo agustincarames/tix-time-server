@@ -34,9 +34,9 @@ public class TixUdpDataService {
 	private final int udpPort;
 	private final TixQueueConnection queue;
 	
-	private final ChannelFuture[] udpFutures;
 	private final Bootstrap udpBootstrap;
 	private EventLoopGroup udpWorkerGroup = null;
+	private ChannelFuture[] udpFutures = null;
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 	
@@ -44,7 +44,6 @@ public class TixUdpDataService {
 		this.workerThreadsQuantity = workerThreadsQuantity;
 		this.udpPort = udpPort;
 		this.queue = queue;
-		this.udpFutures = new ChannelFuture[workerThreadsQuantity];
 		this.udpBootstrap = new Bootstrap();
 	}
 
@@ -54,11 +53,13 @@ public class TixUdpDataService {
 			logger.info("epoll available");
 			udpWorkerGroup = new EpollEventLoopGroup(workerThreadsQuantity);
 			datagramChannelClass = EpollDatagramChannel.class;
+			this.udpFutures = new ChannelFuture[workerThreadsQuantity];
 		} else {
 			logger.info("epoll unavailable");
 			logger.warn("epoll unavailable performance may be reduced due to single thread scheme.");
 			udpWorkerGroup = new NioEventLoopGroup(workerThreadsQuantity, Executors.privilegedThreadFactory());
 			datagramChannelClass = NioDatagramChannel.class;
+			this.udpFutures = new ChannelFuture[1];
 		}
 
 		logger.info("Setting up");
