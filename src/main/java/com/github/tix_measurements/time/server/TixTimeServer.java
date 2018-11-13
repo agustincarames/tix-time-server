@@ -41,16 +41,15 @@ public class TixTimeServer {
 					Integer.parseInt(configs.getString("worker-threads-quantity")),
 					Integer.parseInt(configs.getString("udp-port")),
 					Integer.parseInt(configs.getString("http-port")));
+			setLogLevel(configs.getString("log-level"));
 			
 			server.start();
-			setLogLevel(configs.getString("log-level"));
 			System.out.println("Press enter to terminate");
 			while(System.in.available() == 0) {
 				Thread.sleep(10);
 			}
 			server.stop();
 		} catch (Throwable t) {
-			mainLogger.catching(t);
 			mainLogger.fatal("Unexpected exception", t);
 			System.exit(1);
 		}

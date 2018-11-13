@@ -27,7 +27,7 @@
         </RollingFile>
     </Appenders>
     <Loggers>
-        <Logger name="com.github.tix_measurements.time.server" level="debug" additivity="false">
+        <Logger name="com.github.tix_measurements.time.*" level="debug" additivity="false">
             <appender-ref ref="trace-log" level="info"/>
             <appender-ref ref="error-log" level="error"/>
             <appender-ref ref="console-log" level="info"/>

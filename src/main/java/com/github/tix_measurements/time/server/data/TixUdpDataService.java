@@ -55,8 +55,7 @@ public class TixUdpDataService {
 			datagramChannelClass = EpollDatagramChannel.class;
 			this.udpFutures = new ChannelFuture[workerThreadsQuantity];
 		} else {
-			logger.info("epoll unavailable");
-			logger.warn("epoll unavailable performance may be reduced due to single thread scheme.");
+			logger.warn("epoll unavailable, performance may be reduced due to single thread scheme.");
 			udpWorkerGroup = new NioEventLoopGroup(workerThreadsQuantity, Executors.privilegedThreadFactory());
 			datagramChannelClass = NioDatagramChannel.class;
 			this.udpFutures = new ChannelFuture[1];
@@ -81,10 +80,11 @@ public class TixUdpDataService {
 						ch.pipeline().addLast(new TixMessageEncoder());
 					}
 				});
+
+		logger.info("Binding UDP into port {}", udpPort);
 		if (Epoll.isAvailable()) {
 			udpBootstrap.option(EpollChannelOption.SO_REUSEPORT, true);
 		}
-		logger.info("Binding UDP into port {}", udpPort);
 		for (int i = 0; i < udpFutures.length; i++) {
 			udpFutures[i] = udpBootstrap.bind(udpPort).sync().channel().closeFuture();
 		}
