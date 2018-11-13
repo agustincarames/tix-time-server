@@ -52,6 +52,7 @@ public class TixTimeServer {
 		} catch (Throwable t) {
 			mainLogger.catching(t);
 			mainLogger.fatal("Unexpected exception", t);
+			System.exit(1);
 		}
 	}
 
